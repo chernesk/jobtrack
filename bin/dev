@@ -1,0 +1,14 @@
+#!/usr/bin/env ruby
+# Runs the Rails server and the Vite dev server together (see Procfile.dev).
+# Written without foreman so the project needs no extra gem.
+pids = File.readlines(File.expand_path("../Procfile.dev", __dir__), chomp: true)
+  .reject { |line| line.strip.empty? || line.start_with?("#") }
+  .map { |line| Process.spawn(line.split(":", 2).last.strip) }
+
+%w[INT TERM].each do |signal|
+  trap(signal) { pids.each { |pid| Process.kill("TERM", pid) rescue nil } }
+end
+
+Process.wait(pids.first)
+pids.each { |pid| Process.kill("TERM", pid) rescue nil }
+Process.waitall
