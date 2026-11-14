@@ -6,7 +6,11 @@ type PageModule = { default: ComponentType };
 
 // Vite eagerly bundles every file under pages/, so a page named by a Rails
 // controller (e.g. "Home/Index") resolves to app/frontend/pages/Home/Index.tsx.
-const pages = import.meta.glob<PageModule>("../pages/**/*.tsx", { eager: true });
+// Test files live next to their pages, so they must be excluded or Vitest code
+// ends up in the browser bundle and crashes the app on load.
+const pages = import.meta.glob<PageModule>(["../pages/**/*.tsx", "!../pages/**/*.test.tsx"], {
+  eager: true,
+});
 
 void createInertiaApp({
   resolve: (name) => {
