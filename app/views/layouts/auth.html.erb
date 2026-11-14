@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Sign in · JobTrack</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+    <%= vite_client_tag %>
+    <%= vite_stylesheet_tag "application" %>
+  </head>
+
+  <body class="bg-slate-50 text-slate-900 antialiased">
+    <%# Plain Rails views (no Inertia page), so the React entrypoint is not loaded here. %>
+    <%= yield %>
+  </body>
+</html>
