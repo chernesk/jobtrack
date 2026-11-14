@@ -14,7 +14,9 @@ RSpec.describe "Home", type: :request do
 
       get root_path
 
-      expect(response.body).to include('id="app"', 'data-page=', "inertia")
+      expect(response.body).to include('id="app"', "inertia")
+      # The v3 client reads the initial page from a script element, not a div attribute.
+      expect(response.body).to include('<script data-page="app" type="application/json">')
     end
 
     it "renders the Inertia Home/Index page with the current user" do
