@@ -19,5 +19,11 @@ Rails.application.routes.draw do
     resources :activities, only: :create
   end
 
+  namespace :api do
+    namespace :v1 do
+      resources :opportunities, only: %i[index show create update]
+    end
+  end
+
   root "home#index"
 end

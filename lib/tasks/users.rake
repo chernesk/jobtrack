@@ -14,3 +14,14 @@ namespace :users do
     puts "#{user.previously_new_record? ? "Created" : "Updated"} #{user.email_address}"
   end
 end
+
+namespace :api_tokens do
+  desc "Issue a JSON API token: bin/rails 'api_tokens:create[you@example.com,laptop]' (shown once)"
+  task :create, [ :email, :name ] => :environment do |_task, args|
+    user = User.find_by(email_address: args[:email].to_s.strip.downcase)
+    abort "No user with that email. Usage: bin/rails 'api_tokens:create[you@example.com,laptop]'" unless user
+
+    _record, plaintext = ApiToken.issue(user: user, name: args[:name].presence || "default")
+    puts "Token (store it now; it can't be shown again):\n#{plaintext}"
+  end
+end
