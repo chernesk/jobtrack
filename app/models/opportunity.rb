@@ -4,6 +4,12 @@ class Opportunity < ApplicationRecord
   # Statuses that still need attention (used by the follow-up reminder).
   OPEN_STATUSES = (STATUSES - %w[closed]).freeze
 
+  # Attributes sent to React pages (typed as `Opportunity` in app/frontend/types.ts).
+  PROP_ATTRIBUTES = %w[
+    id company role kind source status pay_min pay_max pay_unit url
+    contacted_on follow_up_on notes position
+  ].freeze
+
   has_many :activities, dependent: :destroy
 
   enum :kind, { full_time: "full_time", contract_w2: "contract_w2", contract_c2c: "contract_c2c" }, validate: { allow_nil: true }
@@ -16,8 +22,26 @@ class Opportunity < ApplicationRecord
   validate :pay_max_not_below_pay_min
   validate :follow_up_not_before_contacted
 
+  # Index filters. Each returns `all` for a blank or unknown value, so a
+  # mistyped query string never raises or hides every record.
+  scope :with_status, ->(value) { where(status: value) if statuses.key?(value.to_s) }
+  scope :with_kind, ->(value) { where(kind: value) if kinds.key?(value.to_s) }
+  scope :search, lambda { |query|
+    term = query.to_s.strip
+    where("opportunities.company ILIKE :term OR opportunities.role ILIKE :term", term: "%#{sanitize_sql_like(term)}%") if term.present?
+  }
+  # Soonest follow-up first by default; records without a follow-up date sort last either way.
+  scope :by_follow_up, lambda { |direction = :asc|
+    column = arel_table[:follow_up_on]
+    order(direction.to_s == "desc" ? column.desc.nulls_last : column.asc.nulls_last, :company, :id)
+  }
+
   # New cards land at the bottom of their status column.
   before_create :assign_position, if: -> { position.zero? }
+
+  def as_props
+    as_json(only: PROP_ATTRIBUTES)
+  end
 
   private
 
