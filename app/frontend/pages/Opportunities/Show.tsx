@@ -42,7 +42,7 @@ export default function Show({ opportunity, activities }: OpportunityShowProps) 
             href={opportunity.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-indigo-700 underline"
+            className="text-indigo-700 dark:text-indigo-300 underline"
           >
             View posting
           </a>
@@ -54,33 +54,36 @@ export default function Show({ opportunity, activities }: OpportunityShowProps) 
 
   return (
     <Layout>
-      <Link href="/opportunities" className="text-sm text-slate-600 hover:text-slate-900">
+      <Link
+        href="/opportunities"
+        className="text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+      >
         ← All opportunities
       </Link>
 
       <div className="mt-3 flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold">{opportunity.company}</h1>
-          <p className="mt-1 text-slate-600">{opportunity.role}</p>
+          <p className="mt-1 text-slate-600 dark:text-slate-400">{opportunity.role}</p>
         </div>
         <div className="flex items-center gap-3">
           <StatusBadge status={opportunity.status} />
           <Link
             href={`/opportunities/${opportunity.id}/edit`}
-            className="rounded px-4 py-2 text-sm font-medium text-slate-900 ring-1 ring-inset ring-slate-300 hover:bg-slate-50"
+            className="rounded px-4 py-2 text-sm font-medium text-slate-900 dark:text-slate-100 ring-1 ring-inset ring-slate-300 dark:ring-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800"
           >
             Edit
           </Link>
         </div>
       </div>
 
-      <dl className="mt-6 grid gap-x-8 gap-y-4 rounded-lg border border-slate-200 bg-white p-5 sm:grid-cols-3">
+      <dl className="mt-6 grid gap-x-8 gap-y-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-5 sm:grid-cols-3">
         {facts.map((fact) => (
           <div key={fact.label}>
-            <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
               {fact.label}
             </dt>
-            <dd className="mt-1 text-sm text-slate-900">{fact.value}</dd>
+            <dd className="mt-1 text-sm text-slate-900 dark:text-slate-100">{fact.value}</dd>
           </div>
         ))}
       </dl>
@@ -88,7 +91,9 @@ export default function Show({ opportunity, activities }: OpportunityShowProps) 
       {opportunity.notes && (
         <section className="mt-6">
           <h2 className="text-base font-semibold">Notes</h2>
-          <p className="mt-2 whitespace-pre-wrap text-sm text-slate-700">{opportunity.notes}</p>
+          <p className="mt-2 whitespace-pre-wrap text-sm text-slate-700 dark:text-slate-300">
+            {opportunity.notes}
+          </p>
         </section>
       )}
 
@@ -96,7 +101,7 @@ export default function Show({ opportunity, activities }: OpportunityShowProps) 
         <h2 className="text-base font-semibold">Activity</h2>
         <div className="mt-4 grid gap-8 lg:grid-cols-2">
           <ActivityTimeline activities={activities} />
-          <div className="rounded-lg border border-slate-200 bg-white p-5">
+          <div className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-5">
             <h3 className="mb-4 text-sm font-semibold">Add activity</h3>
             <ActivityForm opportunityId={opportunity.id} />
           </div>
