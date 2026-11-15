@@ -237,3 +237,43 @@ RSpec.describe Opportunity, ".follow_up_due", type: :model do
     end
   end
 end
+
+RSpec.describe Opportunity, "due flag", type: :model do
+  let(:today) { Date.new(2026, 11, 15) }
+
+  around { |example| travel_to(today) { example.run } }
+
+  it "is set on save when an open opportunity is due, and cleared when it is not" do
+    record = create(:opportunity, status: "contacted", follow_up_on: today - 1)
+    expect(record.due).to be(true)
+
+    record.update!(follow_up_on: today + 7)
+    expect(record.due).to be(false)
+
+    record.update!(follow_up_on: today)
+    expect(record.due).to be(true)
+
+    record.update!(status: "closed")
+    expect(record.due).to be(false)
+  end
+
+  it "is never set without a follow-up date" do
+    expect(create(:opportunity, status: "talking", follow_up_on: nil).due).to be(false)
+  end
+
+  it "is cleared when a card is moved to closed on the board" do
+    record = create(:opportunity, status: "talking", follow_up_on: today)
+
+    record.move_to("closed", 0)
+
+    expect(record.reload.due).to be(false)
+  end
+
+  it "is flagged by .flagged_due, most overdue first" do
+    later = create(:opportunity, status: "talking", follow_up_on: today)
+    earlier = create(:opportunity, status: "contacted", follow_up_on: today - 5)
+    create(:opportunity, status: "contacted", follow_up_on: today + 1)
+
+    expect(described_class.flagged_due).to eq([ earlier, later ])
+  end
+end

@@ -64,11 +64,13 @@ GitHub Actions runs RuboCop, Brakeman, bundler-audit, RSpec against a Postgres s
 
 **Forms.** One `OpportunityForm` serves new and edit with Inertia's `useForm`. Required fields are checked in the browser for instant feedback, and Rails' validation errors come back per field and render next to the right input through a small accessible `Field` component. The server is the authority.
 
+**A recurring job for time-based state.** An opportunity becomes "due" when its follow-up date arrives, which is not an edit, so nothing in a request would notice. A stored `due` flag keeps the dashboard to one indexed query. A `before_save` callback keeps it right when you edit a record, and `FollowUpReminderJob` (Solid Queue, declared in `config/recurring.yml`, 7am Eastern) rolls it over each morning, turning it on for newly due records and off for any that no longer qualify. The rule lives in one scope, `Opportunity.follow_up_due`, and specs check the callback and the job agree with it. Solid Queue is database-backed, so there is no Redis. In development nothing runs the scheduler; run `bin/rails runner FollowUpReminderJob.perform_now` to refresh the flags by hand.
+
 **Rails enums.** Status, kind, source and pay unit are string-backed enums with `validate: true`, so a bad value is a normal validation error rather than an exception.
 
 ## Roadmap
 
-Not built yet: a daily Solid Queue job that flags follow-ups as due, a JSON API with token auth, and a Kamal deployment (with SQLite, so no separate database server).
+Not built yet: a JSON API with token auth, and a Kamal deployment (with SQLite, so no separate database server).
 
 ## How it was built
 

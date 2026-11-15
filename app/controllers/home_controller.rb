@@ -7,7 +7,7 @@ class HomeController < ApplicationController
       # `today` comes from the server so "overdue" never depends on the browser's clock or time zone.
       today: today.iso8601,
       counts: Opportunity::STATUSES.index_with { |status| counts.fetch(status, 0) },
-      follow_ups_due: Opportunity.follow_up_due(today).map(&:as_props),
+      follow_ups_due: Opportunity.flagged_due.map(&:as_props),
       recent_activity: Activity.recent.map(&:as_feed_props)
     }
   end
