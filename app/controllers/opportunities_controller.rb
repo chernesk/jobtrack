@@ -20,6 +20,16 @@ class OpportunitiesController < ApplicationController
     }
   end
 
+  def show
+    opportunity = find_opportunity
+
+    render inertia: "Opportunities/Show", props: {
+      opportunity: opportunity.as_props,
+      # Newest first; `id` breaks ties between activities on the same day.
+      activities: opportunity.activities.order(occurred_on: :desc, id: :desc).map(&:as_props)
+    }
+  end
+
   def new
     render inertia: "Opportunities/New"
   end
@@ -28,7 +38,7 @@ class OpportunitiesController < ApplicationController
     opportunity = Opportunity.new(opportunity_params)
 
     if opportunity.save
-      redirect_to opportunities_path, notice: "Opportunity added."
+      redirect_to opportunity_path(opportunity), notice: "Opportunity added."
     else
       # Validation errors travel in the redirect; the form re-renders with them
       # next to the matching fields and keeps what the user typed.
@@ -44,7 +54,7 @@ class OpportunitiesController < ApplicationController
     opportunity = find_opportunity
 
     if opportunity.update(opportunity_params)
-      redirect_to opportunities_path, notice: "Opportunity updated."
+      redirect_to opportunity_path(opportunity), notice: "Opportunity updated."
     else
       redirect_to edit_opportunity_path(opportunity), inertia: { errors: first_errors(opportunity) }
     end
