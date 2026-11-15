@@ -119,7 +119,7 @@ export default function Show({ opportunities }: BoardShowProps) {
   }
 
   return (
-    <Layout>
+    <Layout wide>
       <h1 className="text-2xl font-semibold">Board</h1>
 
       {error && (
