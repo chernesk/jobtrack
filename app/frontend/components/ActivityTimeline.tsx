@@ -18,18 +18,20 @@ export default function ActivityTimeline({ activities }: ActivityTimelineProps) 
   }
 
   return (
-    <ol className="space-y-4 border-l-2 border-slate-200 pl-5">
+    <ol className="space-y-4 border-l-2 border-slate-200 dark:border-slate-700 pl-5">
       {activities.map((activity) => (
         <li key={activity.id}>
           <div className="flex items-baseline gap-2 text-sm">
-            <span className="font-medium text-slate-900">
+            <span className="font-medium text-slate-900 dark:text-slate-100">
               {ACTIVITY_KIND_LABELS[activity.kind]}
             </span>
-            <time dateTime={activity.occurred_on} className="text-slate-500">
+            <time dateTime={activity.occurred_on} className="text-slate-500 dark:text-slate-400">
               {formatDate(activity.occurred_on)}
             </time>
           </div>
-          <p className="mt-1 whitespace-pre-wrap text-sm text-slate-700">{activity.body}</p>
+          <p className="mt-1 whitespace-pre-wrap text-sm text-slate-700 dark:text-slate-300">
+            {activity.body}
+          </p>
         </li>
       ))}
     </ol>

@@ -1,0 +1,11 @@
+<%# Runs before the page paints, so a dark-mode user never sees a white flash.
+    Keep the logic in step with app/frontend/lib/theme.ts. %>
+<script>
+  (function () {
+    try {
+      var stored = localStorage.getItem("theme");
+      var dark = stored ? stored === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+      document.documentElement.classList.toggle("dark", dark);
+    } catch (e) {}
+  })();
+</script>
