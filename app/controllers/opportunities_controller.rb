@@ -76,11 +76,6 @@ class OpportunitiesController < ApplicationController
 
   private
 
-  EDITABLE_ATTRIBUTES = %i[
-    company role kind source status pay_min pay_max pay_unit url contacted_on follow_up_on notes
-  ].freeze
-  NULLABLE_ENUMS = %w[kind source pay_unit].freeze
-
   # One message per field keeps the client type simple (`errors.company: string`).
   def first_errors(record)
     record.errors.to_hash.transform_values(&:first)
@@ -93,8 +88,8 @@ class OpportunitiesController < ApplicationController
   # An empty <select> submits "", which the enums would reject. Treat it as "not chosen".
   # `position` is deliberately not editable here; the board owns ordering.
   def opportunity_params
-    permitted = params.expect(opportunity: EDITABLE_ATTRIBUTES)
-    NULLABLE_ENUMS.each { |name| permitted[name] = permitted[name].presence }
+    permitted = params.expect(opportunity: Opportunity::EDITABLE_ATTRIBUTES)
+    Opportunity::NULLABLE_ENUMS.each { |name| permitted[name] = permitted[name].presence }
     permitted
   end
 end
