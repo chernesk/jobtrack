@@ -1,4 +1,4 @@
-import { router } from "@inertiajs/react";
+import { Link, router } from "@inertiajs/react";
 
 import EmptyState from "../../components/EmptyState";
 import Layout from "../../components/Layout";
@@ -17,7 +17,15 @@ function visit(query: OpportunityQuery) {
 export default function Index({ opportunities, filters }: OpportunitiesIndexProps) {
   return (
     <Layout>
-      <h1 className="text-2xl font-semibold">Opportunities</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold">Opportunities</h1>
+        <Link
+          href="/opportunities/new"
+          className="rounded bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
+        >
+          New opportunity
+        </Link>
+      </div>
 
       <div className="mt-6 space-y-6">
         <OpportunityFilters
