@@ -217,7 +217,10 @@ export default function OpportunityForm({ opportunity }: OpportunityFormProps) {
         <Button type="submit" disabled={form.processing}>
           {opportunity ? "Save changes" : "Add opportunity"}
         </Button>
-        <Link href="/opportunities" className="text-sm text-slate-600 hover:text-slate-900">
+        <Link
+          href="/opportunities"
+          className="text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+        >
           Cancel
         </Link>
       </div>
