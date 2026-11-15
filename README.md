@@ -14,7 +14,7 @@ It's a real tool I wanted for my own search, and a compact place to show Rails 8
 
 | Layer | Choice |
 |---|---|
-| Back end | Rails 8.1, Ruby 3.4, PostgreSQL, Rails' built-in authentication (single user) |
+| Back end | Rails 8.1, Ruby 3.4, SQLite, Rails' built-in authentication (single user) |
 | Front end | React 19, TypeScript (strict, no `any`), function components and hooks |
 | Glue | `inertia_rails` + `@inertiajs/react`, `vite_rails` |
 | Styling | Tailwind CSS 4, with a light/dark theme |
@@ -22,18 +22,12 @@ It's a real tool I wanted for my own search, and a compact place to show Rails 8
 | Ruby tests | RSpec (model and request specs), FactoryBot |
 | JS tests | Vitest + React Testing Library |
 | Lint and types | RuboCop (rails-omakase), ESLint (type-aware), Prettier, `tsc --noEmit`, Brakeman, bundler-audit |
-| CI | GitHub Actions |
+| Background jobs | Solid Queue (database-backed, no Redis) |
+| CI and deploy | GitHub Actions; Kamal to a single server |
 
 ## Running locally
 
-You need Ruby 3.4, Node 22 (versions are in `.tool-versions`, so [mise](https://mise.jdx.dev) can install both) and a PostgreSQL server. The defaults expect user `postgres`, password `postgres` on `localhost`; override with `DATABASE_HOST`, `DATABASE_USER` and `DATABASE_PASSWORD`. For example, with Docker:
-
-```sh
-docker run -d --name jobtrack-postgres -e POSTGRES_PASSWORD=postgres \
-  -p 127.0.0.1:5432:5432 postgres:17
-```
-
-Then:
+You need Ruby 3.4 and Node 22 (versions are in `.tool-versions`, so [mise](https://mise.jdx.dev) can install both). There is no database server to run: SQLite files live in `storage/`.
 
 ```sh
 bin/setup --skip-server   # installs gems and packages, creates and seeds the database
@@ -52,7 +46,7 @@ npm run lint         # ESLint
 bin/ci               # everything CI runs, locally
 ```
 
-GitHub Actions runs RuboCop, Brakeman, bundler-audit, RSpec against a Postgres service, ESLint, Prettier, `tsc` and Vitest on every pull request.
+GitHub Actions runs RuboCop, Brakeman, bundler-audit, RSpec, ESLint, Prettier, `tsc` and Vitest on every pull request.
 
 ## Design notes
 
@@ -66,12 +60,34 @@ GitHub Actions runs RuboCop, Brakeman, bundler-audit, RSpec against a Postgres s
 
 **A recurring job for time-based state.** An opportunity becomes "due" when its follow-up date arrives, which is not an edit, so nothing in a request would notice. A stored `due` flag keeps the dashboard to one indexed query. A `before_save` callback keeps it right when you edit a record, and `FollowUpReminderJob` (Solid Queue, declared in `config/recurring.yml`, 7am Eastern) rolls it over each morning, turning it on for newly due records and off for any that no longer qualify. The rule lives in one scope, `Opportunity.follow_up_due`, and specs check the callback and the job agree with it. Solid Queue is database-backed, so there is no Redis. In development nothing runs the scheduler; run `bin/rails runner FollowUpReminderJob.perform_now` to refresh the flags by hand.
 
+**SQLite in production.** This is a single-user app, so SQLite is a good fit and removes a moving part: Rails 8 runs the app, Solid Queue (jobs), Solid Cache and Solid Cable each in their own SQLite file on one persistent volume. The one place the model had to care was search: it uses Arel's `matches` (a case-insensitive `LIKE` with explicit escaping) rather than Postgres-only `ILIKE`. Development, CI and production all use the same database, so there is no "works on my Postgres" gap. The trade-offs are one writer at a time and one server; neither matters here.
+
 **Rails enums.** Status, kind, source and pay unit are string-backed enums with `validate: true`, so a bad value is a normal validation error rather than an exception.
 
 ## Roadmap
 
-Not built yet: a JSON API with token auth, and a Kamal deployment (with SQLite, so no separate database server).
+Not built yet: a JSON API with token auth.
 
 ## How it was built
 
 This was built with AI assistance: agents drafted each task in its own git worktree and branch, one pull request per task, each with tests. I scoped the work, reviewed every pull request, ran each change in a real browser, and can explain the decisions in it. The commit and pull request history shows the sequence.
+
+## Deploying
+
+The app deploys to a single server with [Kamal](https://kamal-deploy.org) (Docker, with automatic HTTPS from Let's Encrypt). You need a Linux server you can SSH into as root, a domain name pointing at it, Docker on your machine, and a GitHub token with the `write:packages` scope (images go to `ghcr.io`).
+
+```sh
+export DEPLOY_SERVER_IP=203.0.113.10        # your server
+export DEPLOY_HOST=jobtrack.example.com     # your domain
+export KAMAL_REGISTRY_PASSWORD=ghp_...      # GitHub token, write:packages
+
+bin/kamal setup                             # first time: installs Docker, boots the app
+bin/kamal app exec -i "bin/rails 'users:create[you@example.com]'"   # prompts for a password
+```
+
+Later deploys are `bin/kamal deploy`. Notes:
+
+- Demo seed data is never loaded in production, and no default login exists; the only user is the one you create.
+- The database lives on a Docker volume (`jobtrack_storage`), so it survives deploys. Back it up with `bin/kamal app exec "sqlite3 storage/production.sqlite3 .dump"` or by copying the volume.
+- The job queue runs inside the web process (`SOLID_QUEUE_IN_PUMA`), which is where the daily 7am follow-up job runs.
+- `bin/kamal logs` and `bin/kamal console` are shortcuts defined in `config/deploy.yml`.
