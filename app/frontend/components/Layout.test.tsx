@@ -36,14 +36,20 @@ describe("Layout", () => {
     expect(screen.getByText("Page content")).toBeInTheDocument();
     const nav = screen.getByRole("navigation", { name: "Main" });
     expect(nav).toHaveTextContent("Dashboard");
-    expect(screen.getByRole("link", { name: "Opportunities" })).toHaveAttribute("href", "/opportunities");
+    expect(screen.getByRole("link", { name: "Opportunities" })).toHaveAttribute(
+      "href",
+      "/opportunities",
+    );
     expect(screen.getByRole("link", { name: "Board" })).toHaveAttribute("href", "/board");
   });
 
   it("marks the current section as the active page", () => {
     renderLayout({ url: "/opportunities?status=talking" });
 
-    expect(screen.getByRole("link", { name: "Opportunities" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("link", { name: "Opportunities" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
     expect(screen.getByRole("link", { name: "Dashboard" })).not.toHaveAttribute("aria-current");
   });
 
