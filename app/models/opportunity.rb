@@ -36,6 +36,12 @@ class Opportunity < ApplicationRecord
     order(direction.to_s == "desc" ? column.desc.nulls_last : column.asc.nulls_last, :company, :id)
   }
 
+  # Open opportunities whose follow-up date is `on` or earlier (today or overdue),
+  # most overdue first. The dashboard lists these.
+  scope :follow_up_due, lambda { |on = Date.current|
+    where(status: OPEN_STATUSES).where(follow_up_on: ..on).order(:follow_up_on, :company, :id)
+  }
+
   # New cards land at the bottom of their status column.
   before_create :assign_position, if: -> { position.zero? }
 

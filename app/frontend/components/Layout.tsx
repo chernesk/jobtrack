@@ -17,9 +17,11 @@ function isActive(currentPath: string, href: string): boolean {
 
 interface LayoutProps {
   children: ReactNode;
+  // Let the content use more of a wide screen (the board has six columns).
+  wide?: boolean;
 }
 
-export default function Layout({ children }: LayoutProps) {
+export default function Layout({ children, wide = false }: LayoutProps) {
   // Shared props come from `inertia_share` in ApplicationController, so every
   // page gets them without each controller passing them.
   const { url, props } = usePage<SharedProps>();
@@ -30,7 +32,10 @@ export default function Layout({ children }: LayoutProps) {
   return (
     <div className="min-h-screen">
       <header className="border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
-        <nav aria-label="Main" className="mx-auto flex max-w-6xl items-center gap-6 px-6 py-3">
+        <nav
+          aria-label="Main"
+          className={`mx-auto flex items-center gap-6 px-6 py-3 ${wide ? "max-w-[96rem]" : "max-w-6xl"}`}
+        >
           <span className="text-lg font-semibold">JobTrack</span>
           <ul className="flex flex-1 gap-4">
             {NAV_ITEMS.map((item) => (
@@ -61,7 +66,7 @@ export default function Layout({ children }: LayoutProps) {
         </nav>
       </header>
 
-      <main className="mx-auto max-w-6xl px-6 py-8">
+      <main className={`mx-auto px-6 py-8 ${wide ? "max-w-[96rem]" : "max-w-6xl"}`}>
         {flash.notice && (
           <p
             role="status"

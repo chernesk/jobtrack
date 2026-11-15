@@ -78,8 +78,17 @@ export interface OpportunitiesIndexProps {
   filters: OpportunityQuery;
 }
 
+// An activity in the dashboard feed, with the opportunity it belongs to.
+export interface FeedActivity extends Activity {
+  opportunity: { id: number; company: string };
+}
+
 export interface HomeIndexProps {
-  user: CurrentUser;
+  // The server's "today" ("2026-11-15"), so overdue never depends on the browser.
+  today: string;
+  counts: Record<Status, number>;
+  follow_ups_due: Opportunity[];
+  recent_activity: FeedActivity[];
 }
 
 // What the new/edit form holds while the user types. Every field is a string
