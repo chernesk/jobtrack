@@ -29,10 +29,7 @@ export default function Layout({ children }: LayoutProps) {
   return (
     <div className="min-h-screen">
       <header className="border-b border-slate-200 bg-white">
-        <nav
-          aria-label="Main"
-          className="mx-auto flex max-w-6xl items-center gap-6 px-6 py-3"
-        >
+        <nav aria-label="Main" className="mx-auto flex max-w-6xl items-center gap-6 px-6 py-3">
           <span className="text-lg font-semibold">JobTrack</span>
           <ul className="flex flex-1 gap-4">
             {NAV_ITEMS.map((item) => (
@@ -64,7 +61,10 @@ export default function Layout({ children }: LayoutProps) {
 
       <main className="mx-auto max-w-6xl px-6 py-8">
         {flash.notice && (
-          <p role="status" className="mb-4 rounded bg-emerald-50 px-4 py-2 text-sm text-emerald-800">
+          <p
+            role="status"
+            className="mb-4 rounded bg-emerald-50 px-4 py-2 text-sm text-emerald-800"
+          >
             {flash.notice}
           </p>
         )}
