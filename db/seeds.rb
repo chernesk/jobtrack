@@ -1,6 +1,14 @@
 # Fictional demo data only. Never add real people, companies or personal notes.
 # Safe to run repeatedly: each part is skipped once it has been created.
 
+# A known demo login must never exist on a deployed server, so this file does nothing
+# in production. (`db:prepare` runs it when it creates a fresh database, which is why
+# it skips quietly instead of failing.) Create the real user with `bin/rails users:create`.
+if Rails.env.production?
+  puts "Skipping demo seed data in production."
+  return
+end
+
 User.find_or_create_by!(email_address: "demo@example.com") do |user|
   user.password = "password"
 end
