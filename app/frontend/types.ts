@@ -115,3 +115,7 @@ export interface ActivityFormData {
   occurred_on: string;
   body: string;
 }
+
+export interface BoardShowProps {
+  opportunities: Opportunity[];
+}
