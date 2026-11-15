@@ -3,6 +3,8 @@
   <head>
     <title><%= content_for(:title) || "JobTrack" %></title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark">
+    <%= render "layouts/theme" %>
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
 
@@ -18,7 +20,7 @@
     <%= vite_stylesheet_tag "application" %>
   </head>
 
-  <body class="bg-slate-50 text-slate-900 antialiased">
+  <body class="bg-slate-50 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100">
     <%= yield %>
   </body>
 </html>

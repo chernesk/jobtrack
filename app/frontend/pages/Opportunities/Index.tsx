@@ -21,7 +21,7 @@ export default function Index({ opportunities, filters }: OpportunitiesIndexProp
         <h1 className="text-2xl font-semibold">Opportunities</h1>
         <Link
           href="/opportunities/new"
-          className="rounded bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
+          className="rounded bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-300"
         >
           New opportunity
         </Link>
