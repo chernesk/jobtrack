@@ -215,3 +215,25 @@ RSpec.describe Opportunity, "#move_to", type: :model do
     expect(column("contacted")).to eq(%w[A B C])
   end
 end
+
+RSpec.describe Opportunity, ".follow_up_due", type: :model do
+  let(:today) { Date.new(2026, 11, 15) }
+
+  it "includes open opportunities due today or earlier and excludes closed, future and undated ones" do
+    overdue = create(:opportunity, status: "contacted", follow_up_on: today - 3)
+    due_today = create(:opportunity, status: "interviewing", follow_up_on: today)
+    create(:opportunity, status: "contacted", follow_up_on: today + 1)
+    create(:opportunity, status: "closed", follow_up_on: today - 3)
+    create(:opportunity, status: "talking", follow_up_on: nil)
+
+    expect(described_class.follow_up_due(today)).to eq([ overdue, due_today ])
+  end
+
+  it "defaults to the current date" do
+    travel_to today do
+      due = create(:opportunity, status: "talking", follow_up_on: today)
+
+      expect(described_class.follow_up_due).to eq([ due ])
+    end
+  end
+end
