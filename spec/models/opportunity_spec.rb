@@ -159,3 +159,59 @@ RSpec.describe Opportunity, type: :model do
     end
   end
 end
+
+RSpec.describe Opportunity, "#move_to", type: :model do
+  def column(status)
+    Opportunity.where(status: status).order(:position).pluck(:company)
+  end
+
+  let!(:a) { create(:opportunity, company: "A", status: "contacted") }
+  let!(:b) { create(:opportunity, company: "B", status: "contacted") }
+  let!(:c) { create(:opportunity, company: "C", status: "contacted") }
+  let!(:x) { create(:opportunity, company: "X", status: "talking") }
+
+  it "reorders within a column" do
+    expect(a.move_to("contacted", 2)).to be(true)
+
+    expect(column("contacted")).to eq(%w[B C A])
+    expect(Opportunity.where(status: "contacted").order(:position).pluck(:position)).to eq([ 1, 2, 3 ])
+  end
+
+  it "moves up within a column" do
+    c.move_to("contacted", 0)
+
+    expect(column("contacted")).to eq(%w[C A B])
+  end
+
+  it "moves to another column at a position, closing the gap in the old one" do
+    b.move_to("talking", 0)
+
+    expect(column("talking")).to eq(%w[B X])
+    expect(b.reload.status).to eq("talking")
+    expect(column("contacted")).to eq(%w[A C])
+    expect(Opportunity.where(status: "contacted").order(:position).pluck(:position)).to eq([ 1, 2 ])
+  end
+
+  it "moves into an empty column" do
+    a.move_to("offer", 0)
+
+    expect(column("offer")).to eq(%w[A])
+    expect(a.reload.position).to eq(1)
+  end
+
+  it "clamps an out-of-range index to the ends" do
+    a.move_to("talking", 99)
+    expect(column("talking")).to eq(%w[X A])
+
+    c.move_to("talking", -5)
+    expect(column("talking")).to eq(%w[C X A])
+  end
+
+  it "rejects an unknown status and changes nothing" do
+    expect(a.move_to("archived", 0)).to be(false)
+
+    expect(a.errors[:status]).to be_present
+    expect(a.reload.status).to eq("contacted")
+    expect(column("contacted")).to eq(%w[A B C])
+  end
+end
