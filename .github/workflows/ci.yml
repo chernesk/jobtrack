@@ -3,7 +3,7 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   scan_ruby:
@@ -82,6 +82,8 @@ jobs:
       - run: npm ci
       - name: ESLint
         run: npm run lint
+      - name: Prettier
+        run: npm run format:check
       - name: Type check
         run: npm run typecheck
       - name: Vitest
