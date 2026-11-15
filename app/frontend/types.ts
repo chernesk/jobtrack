@@ -103,3 +103,15 @@ export interface OpportunityFormData {
 export interface OpportunityEditProps {
   opportunity: Opportunity;
 }
+
+export interface OpportunityShowProps {
+  opportunity: Opportunity;
+  activities: Activity[];
+}
+
+// The inline "add activity" form. `occurred_on` is an ISO date string.
+export interface ActivityFormData {
+  kind: ActivityKind;
+  occurred_on: string;
+  body: string;
+}
