@@ -15,3 +15,18 @@ export function todayISO(now: Date = new Date()): string {
   const day = String(now.getDate()).padStart(2, "0");
   return `${now.getFullYear()}-${month}-${day}`;
 }
+
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+// Whole calendar days from `from` to `to` ("YYYY-MM-DD" strings). Both parse as
+// midnight UTC, so daylight-saving changes can't make a day 23 or 25 hours long.
+export function daysBetween(from: string, to: string): number {
+  return Math.round((new Date(to).getTime() - new Date(from).getTime()) / MS_PER_DAY);
+}
+
+// "Due today", "1 day overdue", "5 days overdue".
+export function dueLabel(followUpOn: string, today: string): string {
+  const overdue = daysBetween(followUpOn, today);
+  if (overdue <= 0) return "Due today";
+  return overdue === 1 ? "1 day overdue" : `${overdue} days overdue`;
+}
