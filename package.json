@@ -37,5 +37,6 @@
     "format": "prettier --write app/frontend \"*.{js,ts,json}\" .github/workflows",
     "format:check": "prettier --check app/frontend \"*.{js,ts,json}\" .github/workflows",
     "check": "npm run lint && npm run typecheck && npm test && npm run format:check"
-  }
+  },
+  "name": "jobtrack"
 }
