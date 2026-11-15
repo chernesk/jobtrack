@@ -14,7 +14,9 @@ class Opportunity < ApplicationRecord
 
   enum :kind, { full_time: "full_time", contract_w2: "contract_w2", contract_c2c: "contract_c2c" }, validate: { allow_nil: true }
   enum :source, { network: "network", recruiter: "recruiter", agency: "agency", job_board: "job_board", direct: "direct" }, validate: { allow_nil: true }
-  enum :status, STATUSES.index_with(&:itself), default: "not_contacted", validate: true
+  # `scopes: false`: Rails would also generate negative scopes named `not_<status>`, and
+  # `not_contacted` collides with our own "not_contacted" status. Filtering uses `with_status`.
+  enum :status, STATUSES.index_with(&:itself), default: "not_contacted", validate: true, scopes: false
   enum :pay_unit, { hourly: "hourly", yearly: "yearly" }, validate: { allow_nil: true }
 
   validates :company, :role, presence: true
@@ -28,7 +30,10 @@ class Opportunity < ApplicationRecord
   scope :with_kind, ->(value) { where(kind: value) if kinds.key?(value.to_s) }
   scope :search, lambda { |query|
     term = query.to_s.strip
-    where("opportunities.company ILIKE :term OR opportunities.role ILIKE :term", term: "%#{sanitize_sql_like(term)}%") if term.present?
+    # Arel's `matches` is a case-insensitive LIKE on every database (ILIKE on Postgres,
+    # LIKE ... ESCAPE on SQLite), so the wildcard escaping below works on either.
+    pattern = "%#{sanitize_sql_like(term)}%"
+    where(arel_table[:company].matches(pattern, "\\").or(arel_table[:role].matches(pattern, "\\"))) if term.present?
   }
   # Soonest follow-up first by default; records without a follow-up date sort last either way.
   scope :by_follow_up, lambda { |direction = :asc|
