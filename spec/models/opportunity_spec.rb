@@ -90,4 +90,72 @@ RSpec.describe Opportunity, type: :model do
 
     expect { opportunity.destroy }.to change(Activity, :count).by(-2)
   end
+
+  describe "index scopes" do
+    describe ".with_status / .with_kind" do
+      it "filters by a valid value" do
+        talking = create(:opportunity, status: "talking", kind: "contract_w2")
+        create(:opportunity, status: "offer", kind: "full_time")
+
+        expect(described_class.with_status("talking")).to contain_exactly(talking)
+        expect(described_class.with_kind("contract_w2")).to contain_exactly(talking)
+      end
+
+      it "ignores blank or unknown values instead of raising or hiding everything" do
+        records = create_list(:opportunity, 2)
+
+        expect(described_class.with_status("")).to match_array(records)
+        expect(described_class.with_status("ghosted")).to match_array(records)
+        expect(described_class.with_kind(nil)).to match_array(records)
+        expect(described_class.with_kind("unpaid")).to match_array(records)
+      end
+    end
+
+    describe ".search" do
+      let!(:acme) { create(:opportunity, company: "Acme Logistics", role: "Rails Engineer") }
+      let!(:northwind) { create(:opportunity, company: "Northwind Health", role: "Staff Engineer at Acme Labs") }
+      let!(:other) { create(:opportunity, company: "Globex", role: "Backend Developer") }
+
+      it "matches company or role, case-insensitively" do
+        expect(described_class.search("acme")).to contain_exactly(acme, northwind)
+        expect(described_class.search("BACKEND")).to contain_exactly(other)
+      end
+
+      it "returns everything for a blank query" do
+        expect(described_class.search("  ")).to match_array([ acme, northwind, other ])
+        expect(described_class.search(nil)).to match_array([ acme, northwind, other ])
+      end
+
+      it "treats % and _ literally rather than as wildcards" do
+        expect(described_class.search("%")).to be_empty
+        expect(described_class.search("A_me")).to be_empty
+      end
+    end
+
+    describe ".by_follow_up" do
+      let!(:later) { create(:opportunity, company: "B", follow_up_on: Date.new(2026, 6, 20)) }
+      let!(:sooner) { create(:opportunity, company: "C", follow_up_on: Date.new(2026, 6, 10)) }
+      let!(:undated) { create(:opportunity, company: "A", follow_up_on: nil) }
+
+      it "sorts soonest first and puts undated records last" do
+        expect(described_class.by_follow_up).to eq([ sooner, later, undated ])
+      end
+
+      it "sorts latest first and still puts undated records last when descending" do
+        expect(described_class.by_follow_up(:desc)).to eq([ later, sooner, undated ])
+      end
+    end
+  end
+
+  describe "#as_props" do
+    it "includes only the attributes the front end expects, with dates as ISO strings" do
+      opportunity = create(:opportunity, follow_up_on: Date.new(2026, 6, 10))
+
+      props = opportunity.as_props
+
+      expect(props.keys).to match_array(Opportunity::PROP_ATTRIBUTES)
+      expect(props["follow_up_on"]).to eq("2026-06-10")
+      expect(props).not_to include("created_at", "updated_at")
+    end
+  end
 end
