@@ -60,7 +60,12 @@ export default function OpportunityTable({
           {opportunities.map((opportunity) => (
             <tr key={opportunity.id}>
               <td className="px-4 py-3">
-                <div className="font-medium text-slate-900">{opportunity.company}</div>
+                <Link
+                  href={`/opportunities/${opportunity.id}`}
+                  className="font-medium text-slate-900 hover:underline"
+                >
+                  {opportunity.company}
+                </Link>
                 <div className="text-slate-500">{opportunity.role}</div>
               </td>
               <td className="px-4 py-3">
