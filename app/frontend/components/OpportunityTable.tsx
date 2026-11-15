@@ -1,3 +1,5 @@
+import { Link } from "@inertiajs/react";
+
 import { formatDate } from "../lib/dates";
 import { KIND_LABELS } from "../lib/labels";
 import type { Opportunity, SortDirection } from "../types";
@@ -49,6 +51,9 @@ export default function OpportunityTable({
                 Follow-up {sortDirection === "asc" ? "↑" : "↓"}
               </button>
             </th>
+            <th scope="col" className={HEADER}>
+              <span className="sr-only">Actions</span>
+            </th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">
@@ -73,6 +78,15 @@ export default function OpportunityTable({
               </td>
               <td className="px-4 py-3 text-slate-700">
                 {opportunity.follow_up_on ? formatDate(opportunity.follow_up_on) : "—"}
+              </td>
+              <td className="px-4 py-3 text-right">
+                <Link
+                  href={`/opportunities/${opportunity.id}/edit`}
+                  aria-label={`Edit ${opportunity.company}`}
+                  className="text-slate-600 hover:text-slate-900"
+                >
+                  Edit
+                </Link>
               </td>
             </tr>
           ))}

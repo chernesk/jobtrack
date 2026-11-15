@@ -81,3 +81,25 @@ export interface OpportunitiesIndexProps {
 export interface HomeIndexProps {
   user: CurrentUser;
 }
+
+// What the new/edit form holds while the user types. Every field is a string
+// because that is what inputs produce; "" means "not provided" and Rails turns it
+// into nil (see OpportunitiesController#opportunity_params).
+export interface OpportunityFormData {
+  company: string;
+  role: string;
+  kind: Kind | "";
+  source: Source | "";
+  status: Status;
+  pay_min: string;
+  pay_max: string;
+  pay_unit: PayUnit | "";
+  url: string;
+  contacted_on: string;
+  follow_up_on: string;
+  notes: string;
+}
+
+export interface OpportunityEditProps {
+  opportunity: Opportunity;
+}

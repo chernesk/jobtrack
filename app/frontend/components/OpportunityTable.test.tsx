@@ -1,9 +1,14 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { AnchorHTMLAttributes } from "react";
 import { vi } from "vitest";
 
 import type { Opportunity } from "../types";
 import OpportunityTable from "./OpportunityTable";
+
+vi.mock("@inertiajs/react", () => ({
+  Link: (props: AnchorHTMLAttributes<HTMLAnchorElement>) => <a {...props} />,
+}));
 
 function build(overrides: Partial<Opportunity> = {}): Opportunity {
   return {
@@ -96,5 +101,20 @@ describe("OpportunityTable", () => {
     );
     await userEvent.click(screen.getByRole("button", { name: /follow-up/i }));
     expect(onSortChange).toHaveBeenLastCalledWith("asc");
+  });
+
+  it("links each row to its edit form", () => {
+    render(
+      <OpportunityTable
+        opportunities={[build({ id: 7, company: "Northwind Health" })]}
+        sortDirection="asc"
+        onSortChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("link", { name: "Edit Northwind Health" })).toHaveAttribute(
+      "href",
+      "/opportunities/7/edit",
+    );
   });
 });

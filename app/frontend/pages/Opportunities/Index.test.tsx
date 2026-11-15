@@ -97,4 +97,13 @@ describe("Opportunities/Index", () => {
 
     expect(screen.getByText("No opportunities yet")).toBeInTheDocument();
   });
+
+  it("links to the new opportunity form", () => {
+    render(<Index opportunities={[]} filters={NO_FILTERS} />);
+
+    expect(screen.getByRole("link", { name: "New opportunity" })).toHaveAttribute(
+      "href",
+      "/opportunities/new",
+    );
+  });
 });
