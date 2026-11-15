@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 
 import type { SharedProps } from "../types";
 import Button from "./Button";
+import ThemeToggle from "./ThemeToggle";
 
 const NAV_ITEMS = [
   { href: "/", label: "Dashboard" },
@@ -28,7 +29,7 @@ export default function Layout({ children }: LayoutProps) {
 
   return (
     <div className="min-h-screen">
-      <header className="border-b border-slate-200 bg-white">
+      <header className="border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
         <nav aria-label="Main" className="mx-auto flex max-w-6xl items-center gap-6 px-6 py-3">
           <span className="text-lg font-semibold">JobTrack</span>
           <ul className="flex flex-1 gap-4">
@@ -39,8 +40,8 @@ export default function Layout({ children }: LayoutProps) {
                   aria-current={isActive(path, item.href) ? "page" : undefined}
                   className={
                     isActive(path, item.href)
-                      ? "font-medium text-slate-900"
-                      : "text-slate-500 hover:text-slate-900"
+                      ? "font-medium text-slate-900 dark:text-slate-100"
+                      : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
                   }
                 >
                   {item.label}
@@ -48,8 +49,9 @@ export default function Layout({ children }: LayoutProps) {
               </li>
             ))}
           </ul>
+          <ThemeToggle />
           {auth.user && (
-            <div className="flex items-center gap-3 text-sm text-slate-600">
+            <div className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-400">
               <span>{auth.user.email_address}</span>
               <Button variant="secondary" onClick={() => router.delete("/session")}>
                 Sign out
@@ -63,13 +65,16 @@ export default function Layout({ children }: LayoutProps) {
         {flash.notice && (
           <p
             role="status"
-            className="mb-4 rounded bg-emerald-50 px-4 py-2 text-sm text-emerald-800"
+            className="mb-4 rounded bg-emerald-50 dark:bg-emerald-950 px-4 py-2 text-sm text-emerald-800 dark:text-emerald-200"
           >
             {flash.notice}
           </p>
         )}
         {flash.alert && (
-          <p role="alert" className="mb-4 rounded bg-red-50 px-4 py-2 text-sm text-red-800">
+          <p
+            role="alert"
+            className="mb-4 rounded bg-red-50 dark:bg-red-950 px-4 py-2 text-sm text-red-800 dark:text-red-200"
+          >
             {flash.alert}
           </p>
         )}
