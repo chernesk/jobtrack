@@ -14,22 +14,25 @@ function CardBody({ opportunity }: CardBodyProps) {
     <>
       <Link
         href={`/opportunities/${opportunity.id}`}
-        className="font-medium text-slate-900 hover:underline"
+        className="font-medium text-slate-900 hover:underline dark:text-slate-100"
       >
         {opportunity.company}
       </Link>
-      <p className="text-sm text-slate-600">{opportunity.role}</p>
-      <p className="mt-1 text-xs text-slate-500">
+      <p className="text-sm text-slate-600 dark:text-slate-400">{opportunity.role}</p>
+      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
         <PayRange min={opportunity.pay_min} max={opportunity.pay_max} unit={opportunity.pay_unit} />
       </p>
       {opportunity.follow_up_on && (
-        <p className="text-xs text-slate-500">Follow up {formatDate(opportunity.follow_up_on)}</p>
+        <p className="text-xs text-slate-500 dark:text-slate-400">
+          Follow up {formatDate(opportunity.follow_up_on)}
+        </p>
       )}
     </>
   );
 }
 
-const CARD = "flex gap-2 rounded-lg border border-slate-200 bg-white p-3 shadow-sm";
+const CARD =
+  "flex gap-2 rounded-lg border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900";
 
 interface BoardCardProps {
   opportunity: Opportunity;
@@ -59,7 +62,7 @@ export default function BoardCard({ opportunity, disabled }: BoardCardProps) {
         ref={setActivatorNodeRef}
         aria-label={`Move ${opportunity.company}`}
         disabled={disabled}
-        className="cursor-grab touch-none self-start rounded px-1 text-slate-400 hover:text-slate-700 disabled:cursor-not-allowed"
+        className="cursor-grab touch-none self-start rounded px-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 disabled:cursor-not-allowed"
         {...attributes}
         {...listeners}
       >
