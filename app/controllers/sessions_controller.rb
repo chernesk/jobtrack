@@ -17,6 +17,9 @@ class SessionsController < ApplicationController
 
   def destroy
     terminate_session
-    redirect_to new_session_path, status: :see_other
+    # The sign-in page is plain ERB, not an Inertia page. A normal redirect would
+    # load it inside Inertia's "unknown response" modal, so tell the client to do
+    # a full page visit instead.
+    inertia_location new_session_path
   end
 end
