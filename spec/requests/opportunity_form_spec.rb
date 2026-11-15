@@ -33,10 +33,10 @@ RSpec.describe "Opportunity form", type: :request do
     end
 
     describe "POST /opportunities" do
-      it "creates the record and redirects to the list with a notice" do
+      it "creates the record and redirects to its detail page with a notice" do
         expect { post opportunities_path, params: valid_params }.to change(Opportunity, :count).by(1)
 
-        expect(response).to redirect_to(opportunities_path)
+        expect(response).to redirect_to(opportunity_path(Opportunity.last))
         expect(flash[:notice]).to eq("Opportunity added.")
         expect(Opportunity.last).to have_attributes(company: "Northwind Health", status: "contacted")
       end
@@ -75,10 +75,10 @@ RSpec.describe "Opportunity form", type: :request do
     describe "PATCH /opportunities/:id" do
       let!(:opportunity) { create(:opportunity, company: "Acme Logistics", role: "Engineer") }
 
-      it "updates the record and redirects to the list" do
+      it "updates the record and redirects to its detail page" do
         patch opportunity_path(opportunity), params: { opportunity: { company: "Acme Freight", notes: "Called back" } }
 
-        expect(response).to redirect_to(opportunities_path)
+        expect(response).to redirect_to(opportunity_path(Opportunity.last))
         expect(opportunity.reload).to have_attributes(company: "Acme Freight", notes: "Called back", role: "Engineer")
       end
 
