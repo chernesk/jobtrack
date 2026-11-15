@@ -117,4 +117,19 @@ describe("OpportunityTable", () => {
       "/opportunities/7/edit",
     );
   });
+
+  it("links each company to its detail page", () => {
+    render(
+      <OpportunityTable
+        opportunities={[build({ id: 7, company: "Northwind Health" })]}
+        sortDirection="asc"
+        onSortChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("link", { name: "Northwind Health" })).toHaveAttribute(
+      "href",
+      "/opportunities/7",
+    );
+  });
 });
