@@ -123,7 +123,10 @@ export default function Show({ opportunities }: BoardShowProps) {
       <h1 className="text-2xl font-semibold">Board</h1>
 
       {error && (
-        <p role="alert" className="mt-4 rounded bg-red-50 px-4 py-2 text-sm text-red-800">
+        <p
+          role="alert"
+          className="mt-4 rounded bg-red-50 px-4 py-2 text-sm text-red-800 dark:bg-red-950 dark:text-red-200"
+        >
           {error}
         </p>
       )}
