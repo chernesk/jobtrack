@@ -62,6 +62,22 @@ export type SharedProps = {
   flash: { notice?: string; alert?: string };
 };
 
+export type SortDirection = "asc" | "desc";
+
+// The filters Rails applied, echoed back so the controls match the results.
+// "" means "no filter" for the string fields (it's what a blank <select> sends).
+export interface OpportunityQuery {
+  q: string;
+  status: Status | "";
+  kind: Kind | "";
+  dir: SortDirection;
+}
+
+export interface OpportunitiesIndexProps {
+  opportunities: Opportunity[];
+  filters: OpportunityQuery;
+}
+
 export interface HomeIndexProps {
   user: CurrentUser;
 }
