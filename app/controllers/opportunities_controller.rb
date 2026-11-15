@@ -60,6 +60,20 @@ class OpportunitiesController < ApplicationController
     end
   end
 
+  # Called by the board after a drag. `index` is the card's new 0-based place in the
+  # column. Either way we redirect back to the board, so the client gets the
+  # authoritative order (or the error, so it can undo its optimistic update).
+  def move
+    opportunity = find_opportunity
+    status, index = params.expect(:status, :index)
+
+    if opportunity.move_to(status.to_s, index.to_s.to_i)
+      redirect_to board_path
+    else
+      redirect_to board_path, inertia: { errors: first_errors(opportunity) }
+    end
+  end
+
   private
 
   EDITABLE_ATTRIBUTES = %i[

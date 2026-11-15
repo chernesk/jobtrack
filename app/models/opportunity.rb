@@ -39,11 +39,43 @@ class Opportunity < ApplicationRecord
   # New cards land at the bottom of their status column.
   before_create :assign_position, if: -> { position.zero? }
 
+  # Moves this card to `new_status` at `index` (0-based) among that column's other
+  # cards, then renumbers positions to 1..n so ordering never has gaps or ties.
+  # Returns false (with errors set) if the status is invalid; nothing changes then.
+  def move_to(new_status, index)
+    unless self.class.statuses.key?(new_status.to_s)
+      errors.add(:status, "is not a valid status")
+      return false
+    end
+
+    moved = false
+    transaction do
+      previous_status = status
+      column = self.class.where(status: new_status).where.not(id: id).order(:position, :id).lock.to_a
+      column.insert(index.to_i.clamp(0, column.size), self)
+
+      self.status = new_status
+      self.position = column.index(self) + 1
+      moved = save
+      raise ActiveRecord::Rollback unless moved
+
+      column.each.with_index(1) { |card, position| card.update_columns(position: position) unless card == self || card.position == position }
+      renumber(previous_status) unless previous_status == new_status
+    end
+    moved
+  end
+
   def as_props
     as_json(only: PROP_ATTRIBUTES)
   end
 
   private
+
+  def renumber(column_status)
+    self.class.where(status: column_status).order(:position, :id).each.with_index(1) do |card, position|
+      card.update_columns(position: position) unless card.position == position
+    end
+  end
 
   def pay_max_not_below_pay_min
     return if pay_min.nil? || pay_max.nil?
