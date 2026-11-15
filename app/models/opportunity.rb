@@ -42,6 +42,19 @@ class Opportunity < ApplicationRecord
     where(status: OPEN_STATUSES).where(follow_up_on: ..on).order(:follow_up_on, :company, :id)
   }
 
+  # `due` is stored so the dashboard can read it with one indexed query. It changes
+  # with time as well as with edits, so two things keep it right: this callback when a
+  # record is saved, and FollowUpReminderJob each morning when a date passes untouched.
+  before_save :sync_due
+
+  # Same rule as `follow_up_due`, for a single record.
+  def due_on?(date = Date.current)
+    OPEN_STATUSES.include?(status) && follow_up_on.present? && follow_up_on <= date
+  end
+
+  # Flagged by the daily job (or on save). Most overdue first.
+  scope :flagged_due, -> { where(due: true).order(:follow_up_on, :company, :id) }
+
   # New cards land at the bottom of their status column.
   before_create :assign_position, if: -> { position.zero? }
 
@@ -76,6 +89,10 @@ class Opportunity < ApplicationRecord
   end
 
   private
+
+  def sync_due
+    self.due = due_on?
+  end
 
   def renumber(column_status)
     self.class.where(status: column_status).order(:position, :id).each.with_index(1) do |card, position|
