@@ -1,0 +1,45 @@
+import { useId, type ReactNode } from "react";
+
+// What the field hands to the control so label, input and error stay wired up
+// for screen readers.
+interface ControlProps {
+  id: string;
+  "aria-invalid": boolean;
+  "aria-describedby": string | undefined;
+  className: string;
+}
+
+interface FieldProps {
+  label: string;
+  error?: string | undefined;
+  // Render prop: the caller renders whichever control it needs (input,
+  // textarea, select) and spreads the props it receives onto it.
+  children: (control: ControlProps) => ReactNode;
+}
+
+const BASE_CONTROL = "mt-1 block w-full rounded border px-3 py-2 text-sm";
+
+export default function Field({ label, error, children }: FieldProps) {
+  const id = useId();
+  const errorId = `${id}-error`;
+  const className = `${BASE_CONTROL} ${error ? "border-red-500" : "border-slate-300"}`;
+
+  return (
+    <div>
+      <label htmlFor={id} className="block text-sm font-medium text-slate-700">
+        {label}
+      </label>
+      {children({
+        id,
+        "aria-invalid": Boolean(error),
+        "aria-describedby": error ? errorId : undefined,
+        className,
+      })}
+      {error && (
+        <p id={errorId} role="alert" className="mt-1 text-sm text-red-600">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
