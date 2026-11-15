@@ -4,7 +4,9 @@ import PayRange, { formatPayRange } from "./PayRange";
 
 describe("formatPayRange", () => {
   it("shows a yearly range", () => {
-    expect(formatPayRange({ min: 150000, max: 180000, unit: "yearly" })).toBe("$150,000 – $180,000 / year");
+    expect(formatPayRange({ min: 150000, max: 180000, unit: "yearly" })).toBe(
+      "$150,000 – $180,000 / year",
+    );
   });
 
   it("shows an hourly range in the hourly unit", () => {
