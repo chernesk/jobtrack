@@ -31,5 +31,17 @@ RSpec.describe "Home", type: :request do
         "props" => include("user" => { "email_address" => "demo@example.com" })
       )
     end
+
+    it "shares the signed-in user and an empty flash with every page" do
+      user = create(:user, email_address: "demo@example.com")
+      post session_path, params: { email_address: user.email_address, password: "password" }
+
+      get root_path, headers: { "X-Inertia" => "true" }
+
+      expect(response.parsed_body["props"]).to include(
+        "auth" => { "user" => { "email_address" => "demo@example.com" } },
+        "flash" => {}
+      )
+    end
   end
 end

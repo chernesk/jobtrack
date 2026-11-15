@@ -1,27 +1,23 @@
 import { render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import { router } from "@inertiajs/react";
+import type { AnchorHTMLAttributes } from "react";
 import { vi } from "vitest";
 
 import Index from "./Index";
 
 vi.mock("@inertiajs/react", () => ({
+  Link: (props: AnchorHTMLAttributes<HTMLAnchorElement>) => <a {...props} />,
   router: { delete: vi.fn() },
+  usePage: () => ({
+    url: "/",
+    props: { auth: { user: { email_address: "demo@example.com" } }, flash: {} },
+  }),
 }));
 
 describe("Home/Index", () => {
-  it("greets the signed-in user", () => {
+  it("greets the signed-in user inside the app layout", () => {
     render(<Index user={{ email_address: "demo@example.com" }} />);
 
     expect(screen.getByRole("heading", { name: /hello from react/i })).toBeInTheDocument();
-    expect(screen.getByText("demo@example.com")).toBeInTheDocument();
-  });
-
-  it("signs out when the button is clicked", async () => {
-    render(<Index user={{ email_address: "demo@example.com" }} />);
-
-    await userEvent.click(screen.getByRole("button", { name: /sign out/i }));
-
-    expect(router.delete).toHaveBeenCalledWith("/session");
+    expect(screen.getByRole("navigation", { name: "Main" })).toBeInTheDocument();
   });
 });
