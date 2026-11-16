@@ -106,3 +106,7 @@ Later deploys are `bin/kamal deploy`. Notes:
 - The database lives on a Docker volume (`jobtrack_storage`), so it survives deploys. Back it up with `bin/kamal app exec "sqlite3 storage/production.sqlite3 .dump"` or by copying the volume.
 - The job queue runs inside the web process (`SOLID_QUEUE_IN_PUMA`), which is where the daily 7am follow-up job runs.
 - `bin/kamal logs` and `bin/kamal console` are shortcuts defined in `config/deploy.yml`.
+
+## License
+
+[MIT](LICENSE).
