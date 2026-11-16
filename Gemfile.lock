@@ -117,7 +117,6 @@ GEM
       activesupport (>= 6.1)
     i18n (1.15.2)
       concurrent-ruby (~> 1.0)
-    image_processing (2.2.0)
     inertia_rails (3.23.0)
       railties (>= 6)
     io-console (0.9.5)
@@ -386,7 +385,6 @@ DEPENDENCIES
   bundler-audit
   debug
   factory_bot_rails (~> 6.5)
-  image_processing (~> 2.2)
   inertia_rails (~> 3.23)
   kamal
   propshaft

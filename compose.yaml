@@ -1,0 +1,29 @@
+# Runs JobTrack in a container with Docker Compose. Also works pasted into TrueNAS
+# (Apps > Discover Apps > Custom App > Install via YAML). See "Running in a container" in the README.
+#
+# Set SECRET_KEY_BASE first (generate one with `openssl rand -hex 64`). Where there is no .env file,
+# for example in the TrueNAS editor, replace the ${...} placeholders with real values.
+services:
+  jobtrack:
+    image: ghcr.io/chernesk/jobtrack:latest
+    restart: unless-stopped
+    ports:
+      - "${JOBTRACK_PORT:-3200}:80"
+    environment:
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE:?Set SECRET_KEY_BASE (openssl rand -hex 64)}
+      # Plain HTTP on a home network. Remove this line if a reverse proxy in front adds HTTPS.
+      FORCE_SSL: "false"
+      # Runs the Solid Queue worker (the daily follow-up job) inside the web process.
+      SOLID_QUEUE_IN_PUMA: "true"
+    volumes:
+      # The SQLite databases. The image runs as uid/gid 1000, so a host path must be owned by 1000:1000.
+      - jobtrack_storage:/rails/storage
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost/up"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  jobtrack_storage:
