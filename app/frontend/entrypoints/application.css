@@ -2,6 +2,7 @@
 
 /* The Rails layouts (ERB) carry Tailwind classes too, e.g. the <body> background. */
 @source "../../views";
+@source "../../helpers";
 
 /* Dark mode is class-based (not just the OS setting) so a toggle can override it.
    `dark:` utilities apply when <html> has the `dark` class. */
