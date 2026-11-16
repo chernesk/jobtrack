@@ -64,9 +64,20 @@ GitHub Actions runs RuboCop, Brakeman, bundler-audit, RSpec, ESLint, Prettier, `
 
 **Rails enums.** Status, kind, source and pay unit are string-backed enums with `validate: true`, so a bad value is a normal validation error rather than an exception.
 
-## Roadmap
+## JSON API
 
-Not built yet: a JSON API with token auth.
+The web UI is Inertia, so it has no public API. A small token-authenticated one lives under `/api/v1/opportunities` for scripts and other clients: list (`q`, `status`, `kind`, `dir` filters), show, create and update, with the same fields and validations as the form.
+
+```sh
+bin/rails 'api_tokens:create[you@example.com,laptop]'   # prints a token once
+curl -H "Authorization: Bearer $TOKEN" https://your.host/api/v1/opportunities?status=talking
+curl -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"opportunity":{"company":"Acme Logistics","role":"Rails Engineer"}}' https://your.host/api/v1/opportunities
+```
+
+Errors are JSON: 401 for a missing or wrong token, 404 for an unknown id, 422 with `{"errors": {"field": ["message"]}}` for invalid data, 400 for a body without `opportunity`.
+
+**Design notes.** The API controllers inherit from `ActionController::API`, so there are no cookies, sessions or CSRF to reason about, and a browser session does not authenticate an API call. Only a SHA-256 digest of each token is stored (tokens are long random strings, so a slow password hash is unnecessary and the indexed lookup stays cheap), and the plaintext is shown once when issued. Requests are rate limited to 120 a minute. The editable fields come from one constant, `Opportunity::EDITABLE_ATTRIBUTES`, shared with the web form, so the two cannot drift. There is no delete, pagination or board-move endpoint yet, because the app has none of those in the UI either.
 
 ## How it was built
 
