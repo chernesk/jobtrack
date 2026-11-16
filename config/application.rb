@@ -35,6 +35,10 @@ module Jobtrack
     #
     # "Today" (follow-ups due, seeds) is the owner's calendar day, not UTC.
     config.time_zone = "Eastern Time (US & Canada)"
+
+    # The app has no file uploads or image variants, so don't load an image processor (and don't
+    # warn about a missing one at boot).
+    config.active_storage.variant_processor = :disabled
     # config.eager_load_paths << Rails.root.join("extras")
 
     # Don't generate system test files.
