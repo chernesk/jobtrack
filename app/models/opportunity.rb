@@ -10,6 +10,13 @@ class Opportunity < ApplicationRecord
     contacted_on follow_up_on notes position
   ].freeze
 
+  # Fields a user may set (web form and JSON API). `position` is owned by the board.
+  EDITABLE_ATTRIBUTES = %i[
+    company role kind source status pay_min pay_max pay_unit url contacted_on follow_up_on notes
+  ].freeze
+  # Optional enums: an empty value means "not chosen".
+  NULLABLE_ENUMS = %w[kind source pay_unit].freeze
+
   has_many :activities, dependent: :destroy
 
   enum :kind, { full_time: "full_time", contract_w2: "contract_w2", contract_c2c: "contract_c2c" }, validate: { allow_nil: true }
