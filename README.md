@@ -112,19 +112,18 @@ Later deploys are `bin/kamal deploy`. Notes:
 For personal use, the simplest setup is one container on a machine you own (a home server, a NAS), with the data on a volume. Nothing is exposed to the internet and there is no domain or certificate to manage. The image is built by the `Publish image` workflow and pulled from `ghcr.io/chernesk/jobtrack`.
 
 ```sh
-cp compose.env.example .env                  # then set SECRET_KEY_BASE=$(openssl rand -hex 64)
 docker compose up -d                         # http://localhost:3200
 docker compose exec jobtrack bin/rails 'users:create[you@example.com]'   # prompts for a password
 ```
 
 To build from a checkout instead of pulling: `docker compose -f compose.yaml -f compose.build.yaml up -d --build`.
 
-**TrueNAS (24.10 or later).** In Apps, choose Discover Apps, then Custom App, then Install via YAML, and paste `compose.yaml` with `SECRET_KEY_BASE` set to a real value (there is no `.env` file there; change the port if 3200 is taken). Open a shell on the app (Apps, the app's workloads, Shell) to run the `users:create` command above. To keep the data in a dataset you control, replace the named volume with a host path such as `/mnt/<pool>/apps/jobtrack:/rails/storage`, and give it to the container's user first: `chown 1000:1000 /mnt/<pool>/apps/jobtrack`. The package is private by default; either make it public in the repository's package settings (simplest) or give the host a `ghcr.io` login with a GitHub token that has `read:packages`.
+**TrueNAS (24.10 or later).** In Apps, choose Discover Apps, then Custom App, then Install via YAML, and paste `compose.yaml` as it is (change the port if 3200 is taken). There is nothing to configure. Open a shell on the app (Apps, the app's workloads, Shell) to run the `users:create` command above. To keep the data in a dataset you control, replace the named volume with a host path such as `/mnt/<pool>/apps/jobtrack:/rails/storage`, and give it to the container's user first: `chown 1000:1000 /mnt/<pool>/apps/jobtrack`. The package is private by default; either make it public in the repository's package settings (simplest) or give the host a `ghcr.io` login with a GitHub token that has `read:packages`.
 
 Notes:
 
 - The container serves plain HTTP (`FORCE_SSL=false`), so keep it on your home network. To reach it from outside, put a reverse proxy that terminates HTTPS in front and remove that setting.
-- All state is in `/rails/storage` (the app, queue, cache and cable SQLite files). Keep `SECRET_KEY_BASE` stable: changing it signs you out but loses nothing.
+- All state is in `/rails/storage` (the app, queue, cache and cable SQLite files). The app creates its signing secret on first start and keeps it there as `secret_key_base` (mode 600), so keep that file with your backups; losing it only signs you out. To use your own instead, set a `SECRET_KEY_BASE` environment variable (`openssl rand -hex 64`); Kamal deploys keep using the encrypted credentials.
 - Back up by copying that directory while the container is stopped, or with `docker compose exec jobtrack sqlite3 storage/production.sqlite3 ".backup storage/backup.sqlite3"`.
 - To upgrade, pull the new image and recreate: `docker compose pull && docker compose up -d`. The entrypoint runs `db:prepare`, so migrations apply on start.
 - Your real data lives only in that volume. Never commit it; the repo's seeds are fictional on purpose, and they never load in production.

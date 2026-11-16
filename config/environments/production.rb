@@ -24,6 +24,29 @@ Rails.application.configure do
   # Store uploaded files on the local file system (see config/storage.yml for options).
   config.active_storage.service = :local
 
+  # The signing/encryption secret. Rails uses SECRET_KEY_BASE, or else the encrypted credentials
+  # (what a Kamal deploy has). With neither, as in a plain container, make one the first time the
+  # app starts and keep it in the storage volume. Then a container needs no setup, and the same
+  # secret is used on every start and by one-off commands (`docker exec ... bin/rails ...`).
+  # Skipped while building the image (SECRET_KEY_BASE_DUMMY), where nothing is persisted.
+  if ENV["SECRET_KEY_BASE"].blank? && ENV["SECRET_KEY_BASE_DUMMY"].blank? && Rails.application.credentials.secret_key_base.blank?
+    secret_file = Rails.root.join("storage/secret_key_base")
+    unless secret_file.exist?
+      temp_file = Rails.root.join("storage/.secret_key_base.#{Process.pid}")
+      File.write(temp_file, SecureRandom.hex(64), perm: 0o600)
+      begin
+        # A hard link fails if the file already exists, so two processes starting at once
+        # can't overwrite each other's secret; the loser just reads the winner's.
+        File.link(temp_file, secret_file)
+      rescue Errno::EEXIST
+        nil
+      ensure
+        File.delete(temp_file)
+      end
+    end
+    config.secret_key_base = secret_file.read.strip
+  end
+
   # HTTPS is on by default (Kamal terminates TLS in front of the app). Set FORCE_SSL=false to serve
   # plain HTTP, e.g. when running the container on a home network. Both settings must change
   # together: with `assume_ssl` the session cookie is marked Secure, which browsers drop over HTTP.
