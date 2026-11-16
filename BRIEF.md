@@ -8,11 +8,15 @@ A small, public Rails 8 + React + TypeScript app for tracking a job search. Buil
 
 ---
 
+> **Status:** all tasks (T0 to T11) are built and merged. This brief is the original plan; where it differs from the code (notably PostgreSQL, replaced by SQLite in T10), the code and README win.
+
+---
+
 ## Stack
 
 | Layer | Choice | Notes |
 |---|---|---|
-| Back end | Rails 8, Ruby 3.4, PostgreSQL | Rails 8 built-in authentication generator (single user) |
+| Back end | Rails 8, Ruby 3.4, SQLite | Rails 8 built-in authentication generator (single user) |
 | Front end | React + TypeScript (strict) | Function components and hooks only |
 | Glue | `inertia_rails` + `vite_rails` | React pages served by normal Rails controllers and routes |
 | Styling | Tailwind CSS | Keep it plain and tidy; no design detours |
@@ -21,7 +25,7 @@ A small, public Rails 8 + React + TypeScript app for tracking a job search. Buil
 | Ruby tests | RSpec (model, request) | FactoryBot |
 | JS tests | Vitest + React Testing Library | Component behavior, not snapshots |
 | Lint / types | RuboCop (rails-omakase), ESLint, `tsc --noEmit` | All run in CI |
-| CI | GitHub Actions | Postgres service container |
+| CI | GitHub Actions | SQLite, no service container |
 | Deploy (stretch) | Kamal | Rails 8 default |
 
 Use current stable versions of each gem and package. Pin them in the lockfiles; don't add dependencies beyond this list without noting why in the PR.
@@ -91,12 +95,12 @@ All pages behind sign-in (Rails 8 authentication generator).
 Run T0 alone first and merge it. Then run each group in parallel; start a group when its dependencies are merged.
 
 ### T0 — Scaffold (serial, merge first)
-- `rails new jobtrack --database=postgresql` (no default JS bundling; Vite replaces it)
+- `rails new jobtrack` (no default JS bundling; Vite replaces it). Started on PostgreSQL; T10 moved to SQLite
 - Add `vite_rails`, `inertia_rails`, React, TypeScript (strict), Tailwind
 - Inertia root layout and one "Hello" page rendered from a Rails controller
 - Run the Rails 8 authentication generator; seed one user
 - RSpec and FactoryBot set up; Vitest + Testing Library set up with one passing test
-- GitHub Actions workflow: RuboCop, RSpec (Postgres service), ESLint, `tsc --noEmit`, Vitest
+- GitHub Actions workflow: RuboCop, RSpec, ESLint, `tsc --noEmit`, Vitest
 - **Done when:** `bin/dev` serves a signed-in React page and CI is green
 
 ### Group A (parallel, after T0)
