@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Sign in · JobTrack</title>
+    <title><%= content_for(:title) || "Sign in" %> · JobTrack</title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark">
     <%= render "layouts/theme" %>
@@ -11,8 +11,28 @@
     <%= vite_stylesheet_tag "application" %>
   </head>
 
-  <body class="bg-slate-50 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100">
+  <body class="min-h-screen bg-gradient-to-br from-indigo-50 via-slate-50 to-sky-50 text-slate-900 antialiased dark:from-slate-950 dark:via-slate-950 dark:to-indigo-950/60 dark:text-slate-100">
     <%# Plain Rails views (no Inertia page), so the React entrypoint is not loaded here. %>
-    <%= yield %>
+    <main class="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-4 py-12">
+      <div class="mb-8 flex flex-col items-center text-center">
+        <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-lg shadow-indigo-600/30" aria-hidden="true">
+          <svg viewBox="0 0 24 24" class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M3 13h18"/>
+          </svg>
+        </span>
+        <p class="mt-4 text-2xl font-bold tracking-tight">JobTrack</p>
+        <h1 class="mt-1 text-slate-600 dark:text-slate-400"><%= content_for(:heading) %></h1>
+      </div>
+
+      <div class="rounded-2xl border border-slate-200 bg-white/90 p-6 shadow-xl shadow-slate-900/5 backdrop-blur sm:p-8 dark:border-slate-800 dark:bg-slate-900/80 dark:shadow-black/30">
+        <% if flash[:alert] %>
+          <div role="alert" class="mb-5 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/60 dark:text-red-200"><%= flash[:alert] %></div>
+        <% end %>
+        <% if flash[:notice] %>
+          <div role="status" class="mb-5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/60 dark:text-emerald-200"><%= flash[:notice] %></div>
+        <% end %>
+        <%= yield %>
+      </div>
+    </main>
   </body>
 </html>
