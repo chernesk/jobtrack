@@ -36,6 +36,10 @@ bin/dev                   # Rails + Vite on http://localhost:3000
 
 Sign in with the seeded demo account: `demo@example.com` / `password`. The seed data is entirely fictional (made-up companies, `example.com` URLs). If port 3000 is busy, use `PORT=3100 bin/dev`.
 
+![The sign-in page](docs/screenshots/sign-in.png)
+
+Everything except sign-in requires an account, so there is no public live demo. The screenshots above show the app with the seeded fictional data.
+
 ## Tests and CI
 
 ```sh
