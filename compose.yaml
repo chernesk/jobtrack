@@ -4,7 +4,9 @@
 # No setup needed: the app creates its own secret on first start and keeps it in the volume.
 services:
   jobtrack:
-    image: ghcr.io/chernesk/jobtrack:latest
+    # Pinned on purpose: to upgrade, change the version (see the releases page) and redeploy.
+    # A host that already has `latest` will not re-pull it, but it always pulls a new version.
+    image: ghcr.io/chernesk/jobtrack:1.0.0
     restart: unless-stopped
     ports:
       - "3200:80"   # change the left number if 3200 is taken

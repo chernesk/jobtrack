@@ -133,7 +133,7 @@ Later deploys are `bin/kamal deploy`. Notes:
 
 ## Running in a container
 
-For personal use, the simplest setup is one container on a machine you own (a home server, a NAS), with the data on a volume. Nothing is exposed to the internet and there is no domain or certificate to manage. The image is built by the `Publish image` workflow and pulled from `ghcr.io/chernesk/jobtrack`.
+For personal use, the simplest setup is one container on a machine you own (a home server, a NAS), with the data on a volume. Nothing is exposed to the internet and there is no domain or certificate to manage. The image is built by the `Publish image` workflow from each tagged release and pulled from `ghcr.io/chernesk/jobtrack`.
 
 ```sh
 docker compose up -d                         # http://localhost:3200
@@ -149,8 +149,20 @@ Notes:
 - The container serves plain HTTP (`FORCE_SSL=false`), so keep it on your home network. To reach it from outside, put a reverse proxy that terminates HTTPS in front and remove that setting.
 - All state is in `/rails/storage` (the app, queue, cache and cable SQLite files). The app creates its signing secret on first start and keeps it there as `secret_key_base` (mode 600), so keep that file with your backups; losing it only signs you out. To use your own instead, set a `SECRET_KEY_BASE` environment variable (`openssl rand -hex 64`); Kamal deploys keep using the encrypted credentials.
 - Back up by copying that directory while the container is stopped, or with `docker compose exec jobtrack sqlite3 storage/production.sqlite3 ".backup storage/backup.sqlite3"`.
-- To upgrade, pull the new image and recreate: `docker compose pull && docker compose up -d`. The entrypoint runs `db:prepare`, so migrations apply on start.
+- To upgrade, change the version in the `image:` line of `compose.yaml` (see the [releases](https://github.com/chernesk/jobtrack/releases)) and redeploy; to go back, change it back. Pinning a version matters on a NAS: a host that already has `latest` will not re-pull it. The entrypoint runs `db:prepare`, so migrations apply on start.
 - Your real data lives only in that volume. Never commit it; the repo's seeds are fictional on purpose, and they never load in production.
+
+## Releasing
+
+A release is a version tag. Use plain rules: a patch (`1.0.1`) for fixes, a minor (`1.1.0`) for features.
+
+```sh
+git tag -a v1.0.1 -m "Short summary"
+git push origin v1.0.1
+gh release create v1.0.1 --generate-notes     # release notes from the merged PRs
+```
+
+Pushing the tag runs the `Publish image` workflow, which publishes `1.0.1`, `1.0` and `latest` to `ghcr.io`. Pushes to `main` publish only `edge` and the commit ID, so `latest` never moves until you release.
 
 ## License
 
