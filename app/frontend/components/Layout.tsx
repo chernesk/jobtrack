@@ -18,7 +18,7 @@ function isActive(currentPath: string, href: string): boolean {
 
 interface LayoutProps {
   children: ReactNode;
-  // Let the content use more of a wide screen (the board has six columns).
+  // Let the content use more of a wide screen (the board has eight columns).
   wide?: boolean;
 }
 
@@ -35,7 +35,7 @@ export default function Layout({ children, wide = false }: LayoutProps) {
       <header className="border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
         <nav
           aria-label="Main"
-          className={`mx-auto flex items-center gap-6 px-6 py-3 ${wide ? "max-w-[96rem]" : "max-w-6xl"}`}
+          className={`mx-auto flex items-center gap-6 px-6 py-3 ${wide ? "max-w-[110rem]" : "max-w-6xl"}`}
         >
           <Link href="/" className="flex items-center gap-2 text-lg font-semibold">
             <LogoMark />
@@ -70,7 +70,7 @@ export default function Layout({ children, wide = false }: LayoutProps) {
         </nav>
       </header>
 
-      <main className={`mx-auto px-6 py-8 ${wide ? "max-w-[96rem]" : "max-w-6xl"}`}>
+      <main className={`mx-auto px-6 py-8 ${wide ? "max-w-[110rem]" : "max-w-6xl"}`}>
         {flash.notice && (
           <p
             role="status"

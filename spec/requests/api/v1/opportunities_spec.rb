@@ -138,4 +138,17 @@ RSpec.describe "JSON API: opportunities", type: :request do
       expect(opportunity.reload.company).to eq("Acme Logistics")
     end
   end
+
+  describe "archived records" do
+    it "leaves them out of the list unless ?archived=true" do
+      create(:opportunity, company: "Live Co")
+      create(:opportunity, company: "Gone Co").archive!
+
+      get api_v1_opportunities_path, headers: auth
+      expect(response.parsed_body["opportunities"].pluck("company")).to eq([ "Live Co" ])
+
+      get api_v1_opportunities_path(archived: "true"), headers: auth
+      expect(response.parsed_body["opportunities"].pluck("company")).to contain_exactly("Live Co", "Gone Co")
+    end
+  end
 end

@@ -30,6 +30,8 @@ function due(id: number, company: string, follow_up_on: string, status: Status):
     follow_up_on,
     notes: null,
     position: id,
+    closed_reason: null,
+    archived_at: null,
   };
 }
 

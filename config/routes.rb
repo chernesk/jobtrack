@@ -15,7 +15,11 @@ Rails.application.routes.draw do
   get "board", to: "board#show"
 
   resources :opportunities, only: %i[index show new create edit update] do
-    member { patch :move }
+    member do
+      patch :move
+      patch :archive
+      patch :restore
+    end
     resources :activities, only: :create
   end
 

@@ -1,21 +1,22 @@
 class Opportunity < ApplicationRecord
   # Statuses in board order (left to right).
-  STATUSES = %w[not_contacted contacted talking interviewing offer closed].freeze
+  # `recommended` is a match worth applying to but not yet acted on; `applied` is submitted, no reply.
+  STATUSES = %w[recommended not_contacted contacted applied talking interviewing offer closed].freeze
   # Statuses that still need attention (used by the follow-up reminder).
   OPEN_STATUSES = (STATUSES - %w[closed]).freeze
 
   # Attributes sent to React pages (typed as `Opportunity` in app/frontend/types.ts).
   PROP_ATTRIBUTES = %w[
-    id company role kind source status pay_min pay_max pay_unit url
-    contacted_on follow_up_on notes position
+    id company role kind source status closed_reason pay_min pay_max pay_unit url
+    contacted_on follow_up_on notes position archived_at
   ].freeze
 
   # Fields a user may set (web form and JSON API). `position` is owned by the board.
   EDITABLE_ATTRIBUTES = %i[
-    company role kind source status pay_min pay_max pay_unit url contacted_on follow_up_on notes
+    company role kind source status closed_reason pay_min pay_max pay_unit url contacted_on follow_up_on notes
   ].freeze
   # Optional enums: an empty value means "not chosen".
-  NULLABLE_ENUMS = %w[kind source pay_unit].freeze
+  NULLABLE_ENUMS = %w[kind source pay_unit closed_reason].freeze
 
   has_many :activities, dependent: :destroy
 
@@ -24,12 +25,22 @@ class Opportunity < ApplicationRecord
   # `scopes: false`: Rails would also generate negative scopes named `not_<status>`, and
   # `not_contacted` collides with our own "not_contacted" status. Filtering uses `with_status`.
   enum :status, STATUSES.index_with(&:itself), default: "not_contacted", validate: true, scopes: false
+  # Why a closed opportunity ended. Only kept while the status is closed (see `clear_closed_reason`).
+  enum :closed_reason, {
+    rejected: "rejected", withdrew: "withdrew", posting_closed: "posting_closed",
+    mistake: "mistake", other: "other"
+  }, prefix: :closed_because, validate: { allow_nil: true }
   enum :pay_unit, { hourly: "hourly", yearly: "yearly" }, validate: { allow_nil: true }
 
   validates :company, :role, presence: true
   validates :pay_min, :pay_max, numericality: { only_integer: true, greater_than_or_equal_to: 0, allow_nil: true }
   validate :pay_max_not_below_pay_min
   validate :follow_up_not_before_contacted
+
+  # Archived records are hidden everywhere (board, list, counts, reminders) but kept, so a
+  # mistaken entry can be set aside without destroying data. `archived` is the opposite view.
+  scope :active, -> { where(archived_at: nil) }
+  scope :archived, -> { where.not(archived_at: nil) }
 
   # Index filters. Each returns `all` for a blank or unknown value, so a
   # mistyped query string never raises or hides every record.
@@ -51,24 +62,46 @@ class Opportunity < ApplicationRecord
   # Open opportunities whose follow-up date is `on` or earlier (today or overdue),
   # most overdue first. The dashboard lists these.
   scope :follow_up_due, lambda { |on = Date.current|
-    where(status: OPEN_STATUSES).where(follow_up_on: ..on).order(:follow_up_on, :company, :id)
+    active.where(status: OPEN_STATUSES).where(follow_up_on: ..on).order(:follow_up_on, :company, :id)
   }
 
   # `due` is stored so the dashboard can read it with one indexed query. It changes
   # with time as well as with edits, so two things keep it right: this callback when a
   # record is saved, and FollowUpReminderJob each morning when a date passes untouched.
   before_save :sync_due
+  before_save :clear_closed_reason
 
   # Same rule as `follow_up_due`, for a single record.
   def due_on?(date = Date.current)
-    OPEN_STATUSES.include?(status) && follow_up_on.present? && follow_up_on <= date
+    !archived? && OPEN_STATUSES.include?(status) && follow_up_on.present? && follow_up_on <= date
   end
 
   # Flagged by the daily job (or on save). Most overdue first.
-  scope :flagged_due, -> { where(due: true).order(:follow_up_on, :company, :id) }
+  scope :flagged_due, -> { active.where(due: true).order(:follow_up_on, :company, :id) }
 
   # New cards land at the bottom of their status column.
   before_create :assign_position, if: -> { position.zero? }
+
+  def archived?
+    archived_at.present?
+  end
+
+  # Takes the card off its column (closing the gap) without deleting anything.
+  def archive!
+    return true if archived?
+
+    transaction do
+      update!(archived_at: Time.current)
+      renumber(status)
+    end
+  end
+
+  # Brings it back at the bottom of its column.
+  def unarchive!
+    return true unless archived?
+
+    update!(archived_at: nil, position: next_position)
+  end
 
   # Moves this card to `new_status` at `index` (0-based) among that column's other
   # cards, then renumbers positions to 1..n so ordering never has gaps or ties.
@@ -82,7 +115,7 @@ class Opportunity < ApplicationRecord
     moved = false
     transaction do
       previous_status = status
-      column = self.class.where(status: new_status).where.not(id: id).order(:position, :id).lock.to_a
+      column = self.class.active.where(status: new_status).where.not(id: id).order(:position, :id).lock.to_a
       column.insert(index.to_i.clamp(0, column.size), self)
 
       self.status = new_status
@@ -106,8 +139,13 @@ class Opportunity < ApplicationRecord
     self.due = due_on?
   end
 
+  # A reason only makes sense while closed; reopening an opportunity forgets it.
+  def clear_closed_reason
+    self.closed_reason = nil unless status == "closed"
+  end
+
   def renumber(column_status)
-    self.class.where(status: column_status).order(:position, :id).each.with_index(1) do |card, position|
+    self.class.active.where(status: column_status).order(:position, :id).each.with_index(1) do |card, position|
       card.update_columns(position: position) unless card.position == position
     end
   end
@@ -125,6 +163,10 @@ class Opportunity < ApplicationRecord
   end
 
   def assign_position
-    self.position = (self.class.where(status: status).maximum(:position) || 0) + 1
+    self.position = next_position
+  end
+
+  def next_position
+    (self.class.active.where(status: status).maximum(:position) || 0) + 1
   end
 end

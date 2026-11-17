@@ -7,7 +7,7 @@ module JobTrackMcp
       annotations(read_only_hint: true, destructive_hint: false, idempotent_hint: true, open_world_hint: false)
 
       def self.call(server_context: nil)
-        counts = Opportunity.group(:status).count
+        counts = Opportunity.active.group(:status).count
         respond(
           counts: STATUSES.index_with { |status| counts.fetch(status, 0) },
           follow_ups_due: Opportunity.follow_up_due.count

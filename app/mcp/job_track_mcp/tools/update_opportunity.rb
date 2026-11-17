@@ -28,13 +28,16 @@ module JobTrackMcp
           return failure(problem)
         end
 
+        # Move first, then apply the other fields, all or nothing: the closed reason is only kept
+        # once the status is closed, and a failed field must not leave the card moved.
         new_status = attributes.delete(:status)
-        opportunity.assign_attributes(attributes)
-        return validation_failure(opportunity) unless opportunity.save
-
-        if new_status && new_status != opportunity.status && !opportunity.move_to(new_status, BOTTOM)
-          return validation_failure(opportunity)
+        saved = false
+        Opportunity.transaction do
+          moved = new_status.nil? || new_status == opportunity.status || opportunity.move_to(new_status, BOTTOM)
+          saved = moved && opportunity.update(attributes)
+          raise ActiveRecord::Rollback unless saved
         end
+        return validation_failure(opportunity) unless saved
 
         respond(opportunity.reload.as_props)
       end

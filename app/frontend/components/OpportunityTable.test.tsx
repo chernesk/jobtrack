@@ -26,6 +26,8 @@ function build(overrides: Partial<Opportunity> = {}): Opportunity {
     follow_up_on: "2026-11-20",
     notes: null,
     position: 1,
+    closed_reason: null,
+    archived_at: null,
     ...overrides,
   };
 }

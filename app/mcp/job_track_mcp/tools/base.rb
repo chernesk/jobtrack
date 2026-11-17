@@ -8,6 +8,7 @@ module JobTrackMcp
       KINDS = Opportunity.kinds.keys.freeze
       SOURCES = Opportunity.sources.keys.freeze
       PAY_UNITS = Opportunity.pay_units.keys.freeze
+      CLOSED_REASONS = Opportunity.closed_reasons.keys.freeze
       ACTIVITY_KINDS = Activity.kinds.keys.freeze
       DATE_NOTE = "ISO 8601 date, YYYY-MM-DD".freeze
 
@@ -18,6 +19,7 @@ module JobTrackMcp
         kind: { type: "string", enum: KINDS, description: "Type of work" },
         source: { type: "string", enum: SOURCES, description: "How the opportunity was found" },
         status: { type: "string", enum: STATUSES, description: "Where it is in the process" },
+        closed_reason: { type: "string", enum: CLOSED_REASONS, description: "Why it ended; only kept when status is closed" },
         pay_min: { type: "integer", minimum: 0, description: "Lowest pay, whole dollars" },
         pay_max: { type: "integer", minimum: 0, description: "Highest pay, whole dollars" },
         pay_unit: { type: "string", enum: PAY_UNITS, description: "Whether pay is per hour or per year" },

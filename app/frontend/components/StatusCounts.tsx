@@ -10,7 +10,7 @@ interface StatusCountsProps {
 // One tile per status; each links to the list filtered to that status.
 export default function StatusCounts({ counts }: StatusCountsProps) {
   return (
-    <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+    <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">
       {STATUSES.map((status) => (
         <li key={status}>
           <Link

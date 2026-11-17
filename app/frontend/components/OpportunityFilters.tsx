@@ -94,6 +94,14 @@ export default function OpportunityFilters({ query, onChange, onClear }: Opportu
           </select>
         )}
       </Field>
+      <label className="flex items-center gap-2 pb-2 text-sm text-slate-700 dark:text-slate-300">
+        <input
+          type="checkbox"
+          checked={query.archived}
+          onChange={(event) => onChange({ ...query, archived: event.target.checked })}
+        />
+        Archived only
+      </label>
       {hasActiveFilters(query) && (
         <Button variant="secondary" onClick={onClear}>
           Clear filters

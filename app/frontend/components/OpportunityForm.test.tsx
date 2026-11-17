@@ -50,6 +50,8 @@ const EXISTING: Opportunity = {
   follow_up_on: "2026-11-20",
   notes: "Spoke with the hiring manager",
   position: 1,
+  closed_reason: null,
+  archived_at: null,
 };
 
 describe("OpportunityForm", () => {
@@ -80,6 +82,19 @@ describe("OpportunityForm", () => {
     expect(post).toHaveBeenCalledWith("/opportunities");
     expect(patch).not.toHaveBeenCalled();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("asks why it closed only when the status is closed", () => {
+    const { unmount } = render(<OpportunityForm opportunity={EXISTING} />);
+    expect(screen.queryByLabelText("Why did it close?")).not.toBeInTheDocument();
+    unmount();
+
+    render(
+      <OpportunityForm
+        opportunity={{ ...EXISTING, status: "closed", closed_reason: "withdrew" }}
+      />,
+    );
+    expect(screen.getByLabelText("Why did it close?")).toHaveValue("withdrew");
   });
 
   it("wraps the data under `opportunity` as the Rails controller expects", () => {

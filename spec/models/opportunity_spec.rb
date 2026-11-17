@@ -55,7 +55,7 @@ RSpec.describe Opportunity, type: :model do
     end
 
     it "exposes every status from the brief in board order" do
-      expect(described_class.statuses.keys).to eq(%w[not_contacted contacted talking interviewing offer closed])
+      expect(described_class.statuses.keys).to eq(%w[recommended not_contacted contacted applied talking interviewing offer closed])
     end
 
     it "rejects unknown enum values" do
@@ -275,5 +275,85 @@ RSpec.describe Opportunity, "due flag", type: :model do
     create(:opportunity, status: "contacted", follow_up_on: today + 1)
 
     expect(described_class.flagged_due).to eq([ earlier, later ])
+  end
+end
+
+RSpec.describe Opportunity, "closed reason", type: :model do
+  it "is kept while the status is closed" do
+    opportunity = create(:opportunity, status: "closed", closed_reason: "rejected")
+
+    expect(opportunity.reload.closed_reason).to eq("rejected")
+  end
+
+  it "is forgotten when the opportunity is reopened" do
+    opportunity = create(:opportunity, status: "closed", closed_reason: "withdrew")
+
+    opportunity.update!(status: "talking")
+
+    expect(opportunity.reload.closed_reason).to be_nil
+  end
+
+  it "is dropped if given for an open opportunity" do
+    expect(create(:opportunity, status: "applied", closed_reason: "rejected").closed_reason).to be_nil
+  end
+
+  it "rejects an unknown reason" do
+    expect(build(:opportunity, status: "closed", closed_reason: "ghosted")).not_to be_valid
+  end
+end
+
+RSpec.describe Opportunity, "archiving", type: :model do
+  it "hides the record from .active and shows it in .archived" do
+    keep = create(:opportunity)
+    gone = create(:opportunity)
+
+    gone.archive!
+
+    expect(described_class.active).to contain_exactly(keep)
+    expect(described_class.archived).to contain_exactly(gone)
+    expect(gone).to be_archived
+  end
+
+  it "closes the gap in its column" do
+    first = create(:opportunity, status: "talking")
+    middle = create(:opportunity, status: "talking")
+    last = create(:opportunity, status: "talking")
+
+    middle.archive!
+
+    expect([ first.reload.position, last.reload.position ]).to eq([ 1, 2 ])
+  end
+
+  it "keeps archived cards out of reminders and the due flag" do
+    opportunity = create(:opportunity, status: "contacted", follow_up_on: Date.current - 1)
+    expect(opportunity.reload.due).to be(true)
+
+    opportunity.archive!
+
+    expect(opportunity.reload.due).to be(false)
+    expect(described_class.follow_up_due).to be_empty
+    expect(described_class.flagged_due).to be_empty
+  end
+
+  it "restores to the bottom of its column" do
+    gone = create(:opportunity, status: "talking")
+    other = create(:opportunity, status: "talking")
+    gone.archive!
+
+    gone.unarchive!
+
+    expect(gone.reload).not_to be_archived
+    expect(gone.position).to be > other.reload.position
+  end
+
+  it "does nothing when archived or restored twice" do
+    opportunity = create(:opportunity)
+
+    expect(opportunity.unarchive!).to be(true)
+    opportunity.archive!
+    stamp = opportunity.archived_at
+    opportunity.archive!
+
+    expect(opportunity.reload.archived_at).to eq(stamp)
   end
 end
