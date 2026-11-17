@@ -151,4 +151,24 @@ RSpec.describe "JSON API: opportunities", type: :request do
       expect(response.parsed_body["opportunities"].pluck("company")).to contain_exactly("Live Co", "Gone Co")
     end
   end
+
+  describe "duplicates" do
+    it "refuses a repeated external_id with an error on that field" do
+      create(:opportunity, external_id: "42472")
+
+      post api_v1_opportunities_path, headers: auth, params: { opportunity: { company: "A", role: "B", external_id: "42472" } }
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(response.parsed_body["errors"]).to have_key("external_id")
+    end
+
+    it "refuses a repeated posting URL" do
+      create(:opportunity, url: "https://example.com/jobs/1")
+
+      post api_v1_opportunities_path, headers: auth, params: { opportunity: { company: "A", role: "B", url: "https://example.com/jobs/1" } }
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(response.parsed_body["errors"]).to have_key("url")
+    end
+  end
 end

@@ -28,6 +28,8 @@ function build(overrides: Partial<Opportunity> = {}): Opportunity {
     position: 1,
     closed_reason: null,
     archived_at: null,
+    external_id: null,
+    last_verified_on: null,
     ...overrides,
   };
 }

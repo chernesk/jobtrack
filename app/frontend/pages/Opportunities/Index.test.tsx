@@ -37,6 +37,8 @@ function build(id: number, company: string): Opportunity {
     position: id,
     closed_reason: null,
     archived_at: null,
+    external_id: null,
+    last_verified_on: null,
   };
 }
 

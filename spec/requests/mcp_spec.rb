@@ -61,7 +61,8 @@ RSpec.describe "MCP endpoint", type: :request do
 
       expect(tools.map { |t| t["name"] }).to contain_exactly(
         "search_opportunities", "get_opportunity", "follow_ups_due", "pipeline_summary",
-        "create_opportunity", "update_opportunity", "archive_opportunity", "log_activity"
+        "create_opportunity", "bulk_create_opportunities", "update_opportunity", "archive_opportunity",
+        "stale_postings", "log_activity"
       )
       expect(tools.map { |t| t["name"] }).not_to include(a_string_matching(/delete|remove/))
     end
@@ -278,6 +279,125 @@ RSpec.describe "MCP endpoint", type: :request do
 
       expect(error).to be(true)
       expect(message).to include("No opportunity with id 0")
+    end
+  end
+
+  describe "duplicates, bulk create and stale postings" do
+    it "reports a repeated external_id instead of adding it again" do
+      existing = create(:opportunity, company: "Huntress", role: "Rails Engineer", external_id: "42472")
+
+      message, error = call_tool("create_opportunity", { company: "Huntress", role: "Rails Engineer (remote)", external_id: "42472" })
+
+      expect(error).to be(true)
+      expect(message).to include("Already tracked as id #{existing.id}", "Huntress")
+      expect(Opportunity.count).to eq(1)
+    end
+
+    it "reports a repeated posting URL, and says when the match is archived" do
+      existing = create(:opportunity, url: "https://example.com/jobs/1")
+      existing.archive!
+
+      message, error = call_tool("create_opportunity", { company: "Other", role: "Other", url: "https://example.com/jobs/1/" })
+
+      expect(error).to be(true)
+      expect(message).to include("archived", "archive_opportunity")
+    end
+
+    it "stores external_id and last_verified_on" do
+      payload, error = call_tool("create_opportunity",
+                                 { company: "Huntress", role: "Rails Engineer", external_id: "42472", last_verified_on: "2026-11-17" })
+
+      expect(error).to be(false)
+      expect(payload).to include("external_id" => "42472", "last_verified_on" => "2026-11-17")
+    end
+
+    it "rejects a malformed last_verified_on" do
+      message, error = call_tool("create_opportunity", { company: "A", role: "B", last_verified_on: "yesterday" })
+
+      expect(error).to be(true)
+      expect(message).to include("last_verified_on must be a date")
+    end
+
+    describe "bulk_create_opportunities" do
+      it "creates each item and reports it" do
+        payload, error = call_tool("bulk_create_opportunities", { opportunities: [
+          { company: "Relevant", role: "Engineer", status: "recommended", external_id: "r1" },
+          { company: "Mitre Media", role: "Engineer", status: "recommended", url: "https://example.com/mitre" }
+        ] })
+
+        expect(error).to be(false)
+        expect(payload).to include("created" => 2, "duplicates" => 0, "errors" => 0)
+        expect(payload["results"].pluck("result")).to eq(%w[created created])
+        expect(Opportunity.where(status: "recommended").count).to eq(2)
+      end
+
+      it "skips duplicates (existing and within the batch) and keeps going" do
+        existing = create(:opportunity, company: "Relevant", role: "Engineer", external_id: "r1")
+
+        payload, = call_tool("bulk_create_opportunities", { opportunities: [
+          { company: "Relevant", role: "Engineer", external_id: "r1" },
+          { company: "SerpApi", role: "Engineer", external_id: "s1" },
+          { company: "SerpApi", role: "Engineer again", external_id: "s1" }
+        ] })
+
+        expect(payload).to include("created" => 1, "duplicates" => 2, "errors" => 0)
+        expect(payload["results"][0]).to include("result" => "duplicate", "id" => existing.id)
+        expect(payload["results"][2]["result"]).to eq("duplicate")
+        expect(Opportunity.count).to eq(2)
+      end
+
+      it "reports a problem with one item without stopping the others" do
+        payload, = call_tool("bulk_create_opportunities", { opportunities: [
+          { company: "Bad", role: "Pay", pay_min: 200, pay_max: 100 },
+          { company: "Bad", role: "Date", follow_up_on: "next week" },
+          { company: "Good", role: "Engineer" }
+        ] })
+
+        expect(payload).to include("created" => 1, "errors" => 2)
+        expect(payload["results"].pluck("result")).to eq(%w[error error created])
+        expect(payload["results"][1]["message"]).to include("follow_up_on must be a date")
+        expect(Opportunity.pluck(:company)).to eq([ "Good" ])
+      end
+
+      it "rejects a whole batch with an invalid item before saving anything" do
+        result = rpc("tools/call", { name: "bulk_create_opportunities",
+                                     arguments: { opportunities: [ { company: "A", role: "B" }, { company: "C", role: "D", status: "ghosted" } ] } })
+
+        expect(result["error"] || result.dig("result", "isError")).to be_truthy
+        expect(Opportunity.count).to eq(0)
+      end
+
+      it "refuses more than 25 items" do
+        items = Array.new(26) { |i| { company: "Co #{i}", role: "Engineer" } }
+
+        result = rpc("tools/call", { name: "bulk_create_opportunities", arguments: { opportunities: items } })
+
+        expect(result["error"] || result.dig("result", "isError")).to be_truthy
+        expect(Opportunity.count).to eq(0)
+      end
+    end
+
+    describe "stale_postings" do
+      it "lists postings not verified within the window, oldest first" do
+        create(:opportunity, company: "Fresh", status: "recommended", last_verified_on: Date.current - 2)
+        create(:opportunity, company: "Never", status: "applied", last_verified_on: nil)
+        create(:opportunity, company: "Old", status: "recommended", last_verified_on: Date.current - 30)
+        create(:opportunity, company: "Talking", status: "talking", last_verified_on: nil)
+
+        payload, error = call_tool("stale_postings", {})
+
+        expect(error).to be(false)
+        expect(payload["opportunities"].pluck("company")).to eq(%w[Never Old])
+        expect(payload["total"]).to eq(2)
+      end
+
+      it "honours the days argument" do
+        create(:opportunity, company: "Old", status: "recommended", last_verified_on: Date.current - 5)
+
+        payload, = call_tool("stale_postings", { days: 3 })
+
+        expect(payload["opportunities"].pluck("company")).to eq([ "Old" ])
+      end
     end
   end
 end

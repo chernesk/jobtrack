@@ -26,9 +26,12 @@ module JobTrackMcp
         url: { type: "string", description: "Link to the posting" },
         contacted_on: { type: "string", description: "Date first contacted (#{DATE_NOTE})" },
         follow_up_on: { type: "string", description: "Date to follow up (#{DATE_NOTE})" },
-        notes: { type: "string", description: "Free-form notes" }
+        notes: { type: "string", description: "Free-form notes" },
+        external_id: { type: "string", description: "The job board's id for the posting (e.g. 42472), or any stable key. " \
+                                                       "Unique: used to catch duplicates" },
+        last_verified_on: { type: "string", description: "Date the posting was last confirmed still live (#{DATE_NOTE})" }
       }.freeze
-      DATE_FIELDS = %i[contacted_on follow_up_on].freeze
+      DATE_FIELDS = %i[contacted_on follow_up_on last_verified_on].freeze
 
       class << self
         def respond(payload)
@@ -59,6 +62,32 @@ module JobTrackMcp
             return "#{field} must be a date like 2026-12-31, got #{value.inspect}."
           end
           nil
+        end
+
+        # Creates one opportunity, or says why not. Returns [:created | :duplicate | :invalid | :error, value]
+        # where value is the record (or the problem text for :error). Used by create and bulk create so both
+        # treat duplicates the same way: a repeated external_id or posting URL is reported, never re-added.
+        def create_or_report(attributes)
+          attributes = clean(attributes.to_h.symbolize_keys)
+          if (problem = check_dates(attributes))
+            return [ :error, problem ]
+          end
+
+          editable = attributes.slice(*Opportunity::EDITABLE_ATTRIBUTES)
+          existing = Opportunity.find_duplicate(external_id: editable[:external_id], url: editable[:url])
+          return [ :duplicate, existing ] if existing
+
+          opportunity = Opportunity.new(editable)
+          [ opportunity.save ? :created : :invalid, opportunity ]
+        rescue ActiveRecord::RecordNotUnique
+          # Lost a race with another request that saved the same external_id.
+          [ :duplicate, Opportunity.find_duplicate(external_id: editable[:external_id]) ]
+        end
+
+        def duplicate_summary(existing)
+          "Already tracked as id #{existing.id} (#{existing.company}, #{existing.role}, status #{existing.status}" \
+            "#{", archived" if existing.archived?}). Use update_opportunity to change it" \
+            "#{" (archive_opportunity with archived false restores it)" if existing.archived?}."
         end
 
         # Optional enums arrive as "" when the model means "unset".

@@ -70,6 +70,8 @@ GitHub Actions runs RuboCop, Brakeman, bundler-audit, RSpec, ESLint, Prettier, `
 
 **Pipeline stages.** Eight statuses run left to right: recommended (a good match not yet acted on), not contacted, contacted, applied (sent, no reply yet), talking, interviewing, offer, closed. A closed opportunity can carry a reason (rejected, withdrew, posting closed, created by mistake, other), which is cleared if it is reopened. Archiving hides a record everywhere without deleting it.
 
+**Duplicates.** `external_id` (the job board's own id) is unique when present, and a posting URL can only be tracked once, compared ignoring host case, a trailing slash and a `#fragment`. The model enforces both, so the web form, the JSON API and MCP all refuse a repeat. The MCP tools check first, so the assistant gets a message naming the existing record (and saying if it is archived) rather than a bare validation error. `last_verified_on` records when a posting was last confirmed live; `stale_postings` lists the ones that need re-checking.
+
 **Rails enums.** Status, kind, source, pay unit and closed reason are string-backed enums with `validate: true`, so a bad value is a normal validation error rather than an exception.
 
 ## JSON API
@@ -103,8 +105,10 @@ Point the assistant at `http://<your-host>:3200/mcp` (transport "streamable HTTP
 | `get_opportunity` | One opportunity with its full activity history |
 | `follow_ups_due` | Open opportunities whose follow-up is today or overdue |
 | `pipeline_summary` | Counts per status, and how many follow-ups are due |
-| `create_opportunity` | Add an opportunity |
+| `create_opportunity` | Add an opportunity; a repeated posting ID or URL is reported as a duplicate, not added |
+| `bulk_create_opportunities` | Add up to 25 at once (a daily search, say); each item is created, skipped as a duplicate, or reported as an error on its own |
 | `update_opportunity` | Change fields; a status change moves the card to the bottom of its column |
+| `stale_postings` | Postings not confirmed live within N days, so they can be re-checked |
 | `archive_opportunity` | Hide an entry made by mistake, or restore it. Nothing is deleted |
 | `log_activity` | Record an email, call, interview or note |
 

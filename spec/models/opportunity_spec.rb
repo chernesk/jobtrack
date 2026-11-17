@@ -357,3 +357,86 @@ RSpec.describe Opportunity, "archiving", type: :model do
     expect(opportunity.reload.archived_at).to eq(stamp)
   end
 end
+
+RSpec.describe Opportunity, "duplicate detection", type: :model do
+  it "trims the external id and treats blank as none" do
+    expect(create(:opportunity, external_id: "  42472 ").external_id).to eq("42472")
+    expect(create(:opportunity, external_id: "  ").external_id).to be_nil
+  end
+
+  it "allows many records without an id, but not a repeated id" do
+    create(:opportunity, external_id: nil)
+
+    expect(build(:opportunity, external_id: nil)).to be_valid
+    create(:opportunity, external_id: "42472")
+    expect(build(:opportunity, external_id: "42472")).not_to be_valid
+  end
+
+  it "finds a duplicate by external id, including archived records" do
+    kept = create(:opportunity, external_id: "42472")
+    kept.archive!
+
+    expect(described_class.find_duplicate(external_id: "42472")).to eq(kept)
+    expect(described_class.find_duplicate(external_id: "99999")).to be_nil
+  end
+
+  it "finds a duplicate by URL, ignoring host case, a trailing slash and a fragment" do
+    kept = create(:opportunity, url: "https://Jobs.Example.com/postings/42472")
+
+    expect(described_class.find_duplicate(url: "https://jobs.example.com/postings/42472/")).to eq(kept)
+    expect(described_class.find_duplicate(url: "https://jobs.example.com/postings/42472#apply")).to eq(kept)
+    expect(described_class.find_duplicate(url: "https://jobs.example.com/postings/99999")).to be_nil
+  end
+
+  it "keeps URLs with different queries apart" do
+    create(:opportunity, url: "https://jobs.example.com/view?id=1")
+
+    expect(described_class.find_duplicate(url: "https://jobs.example.com/view?id=2")).to be_nil
+  end
+
+  it "rejects a new record whose URL is already tracked, naming the existing one" do
+    create(:opportunity, company: "Huntress", role: "Rails Engineer", url: "https://example.com/jobs/1")
+    twin = build(:opportunity, url: "https://example.com/jobs/1/")
+
+    expect(twin).not_to be_valid
+    expect(twin.errors[:url].first).to include("Huntress")
+  end
+
+  it "does not flag a record against itself or when the URL is unchanged" do
+    first = create(:opportunity, url: "https://example.com/jobs/1")
+
+    expect(first.update(notes: "edited")).to be(true)
+  end
+
+  it "ignores a blank or missing URL" do
+    expect(described_class.find_duplicate(url: nil)).to be_nil
+    expect(described_class.find_duplicate(url: "")).to be_nil
+  end
+
+  it "finds records by external id in the text search" do
+    match = create(:opportunity, external_id: "42472")
+    create(:opportunity)
+
+    expect(described_class.search("4247")).to contain_exactly(match)
+  end
+end
+
+RSpec.describe Opportunity, ".stale_postings", type: :model do
+  let(:cutoff) { Date.current - 14 }
+
+  it "lists unverified and old-verified postings, never-checked first" do
+    never = create(:opportunity, status: "recommended", last_verified_on: nil)
+    old = create(:opportunity, status: "applied", last_verified_on: cutoff - 1)
+    create(:opportunity, status: "applied", last_verified_on: cutoff)
+
+    expect(described_class.stale_postings(cutoff)).to eq([ never, old ])
+  end
+
+  it "leaves out archived and late-stage records" do
+    create(:opportunity, status: "talking", last_verified_on: nil)
+    create(:opportunity, status: "closed", last_verified_on: nil)
+    create(:opportunity, status: "recommended", last_verified_on: nil).archive!
+
+    expect(described_class.stale_postings(cutoff)).to be_empty
+  end
+end
