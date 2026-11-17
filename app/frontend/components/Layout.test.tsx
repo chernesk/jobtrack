@@ -30,6 +30,12 @@ function renderLayout(overrides: Partial<{ url: string; props: Partial<SharedPro
 }
 
 describe("Layout", () => {
+  it("shows the JobTrack name as a link home", () => {
+    renderLayout({ url: "/board" });
+
+    expect(screen.getByRole("link", { name: "JobTrack" })).toHaveAttribute("href", "/");
+  });
+
   it("renders the page content and the main navigation", () => {
     renderLayout();
 

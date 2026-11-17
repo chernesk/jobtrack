@@ -1,4 +1,6 @@
-# JobTrack
+<p align="center"><img src="public/icon.svg" alt="" width="72" height="72"></p>
+
+<h1 align="center">JobTrack</h1>
 
 A small Rails 8 + React + TypeScript app for tracking a job search: a dashboard, a filterable list, a drag-and-drop status board, and a timeline of activity for each opportunity.
 
