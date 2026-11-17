@@ -85,6 +85,28 @@ Errors are JSON: 401 for a missing or wrong token, 404 for an unknown id, 422 wi
 
 **Design notes.** The API controllers inherit from `ActionController::API`, so there are no cookies, sessions or CSRF to reason about, and a browser session does not authenticate an API call. Only a SHA-256 digest of each token is stored (tokens are long random strings, so a slow password hash is unnecessary and the indexed lookup stays cheap), and the plaintext is shown once when issued. Requests are rate limited to 120 a minute. The editable fields come from one constant, `Opportunity::EDITABLE_ATTRIBUTES`, shared with the web form, so the two cannot drift. There is no delete, pagination or board-move endpoint yet, because the app has none of those in the UI either.
 
+## Connecting an AI assistant (MCP)
+
+The app is also an [MCP](https://modelcontextprotocol.io) server at `/mcp`, so an assistant that supports MCP (such as Open WebUI) can search and update your job search directly, with no copy and paste. It uses the same API tokens as the JSON API, over the same container and port.
+
+```sh
+bin/rails 'api_tokens:create[you@example.com,assistant]'   # prints a token once
+```
+
+Point the assistant at `http://<your-host>:3200/mcp` (transport "streamable HTTP") and send the token as `Authorization: Bearer <token>`. In Open WebUI that is Admin Settings, External Tools, add a server of type MCP (streamable HTTP); older versions need the `mcpo` proxy.
+
+| Tool | What it does |
+|---|---|
+| `search_opportunities` | List opportunities, filtered by text, status or kind |
+| `get_opportunity` | One opportunity with its full activity history |
+| `follow_ups_due` | Open opportunities whose follow-up is today or overdue |
+| `pipeline_summary` | Counts per status, and how many follow-ups are due |
+| `create_opportunity` | Add an opportunity |
+| `update_opportunity` | Change fields; a status change moves the card to the bottom of its column |
+| `log_activity` | Record an email, call, interview or note |
+
+**Design notes.** It is a small Rack app (`JobTrackMcp::Endpoint`) built on the official Ruby SDK and mounted in the Rails routes, so there is nothing extra to deploy. It is stateless, so each request stands alone and a restart strands no one. The tools call the same models as the web app, with the same validations, so the assistant cannot save anything the form would reject; bad input comes back as a readable tool error. Dates are checked rather than silently dropped. Read-only tools are annotated as such so a client can allow them without prompting. There is deliberately no delete tool, and the server tells the model to treat text in opportunities as data, not instructions, since job postings and emails are untrusted text that could try to steer an assistant. Anyone with a token can read and change your data, so keep it private and revoke it by deleting its row in the console (`ApiToken.find_by(name: "assistant").destroy`).
+
 ## How it was built
 
 This was built with AI assistance: agents drafted each task in its own git worktree and branch, one pull request per task, each with tests. I scoped the work, reviewed every pull request, ran each change in a real browser, and can explain the decisions in it. The commit and pull request history shows the sequence.
