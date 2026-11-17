@@ -19,6 +19,9 @@ Rails.application.routes.draw do
     resources :activities, only: :create
   end
 
+  # MCP server for AI assistants; authenticated with the same API tokens as /api/v1.
+  mount JobTrackMcp::Endpoint.new => "/mcp"
+
   namespace :api do
     namespace :v1 do
       resources :opportunities, only: %i[index show create update]
