@@ -17,6 +17,8 @@ function card(id: number, status: Status): Opportunity {
     follow_up_on: null,
     notes: null,
     position: id,
+    closed_reason: null,
+    archived_at: null,
   };
 }
 
@@ -38,7 +40,7 @@ describe("groupByStatus", () => {
   it("has a column for every status, keeping each column's order", () => {
     const columns = board();
 
-    expect(Object.keys(columns)).toHaveLength(6);
+    expect(Object.keys(columns)).toHaveLength(8);
     expect(ids(columns.contacted)).toEqual([1, 2, 3]);
     expect(ids(columns.offer)).toEqual([]);
   });

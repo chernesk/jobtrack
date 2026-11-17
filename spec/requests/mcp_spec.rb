@@ -61,7 +61,7 @@ RSpec.describe "MCP endpoint", type: :request do
 
       expect(tools.map { |t| t["name"] }).to contain_exactly(
         "search_opportunities", "get_opportunity", "follow_ups_due", "pipeline_summary",
-        "create_opportunity", "update_opportunity", "log_activity"
+        "create_opportunity", "update_opportunity", "archive_opportunity", "log_activity"
       )
       expect(tools.map { |t| t["name"] }).not_to include(a_string_matching(/delete|remove/))
     end
@@ -214,6 +214,70 @@ RSpec.describe "MCP endpoint", type: :request do
 
       expect(result["error"] || result.dig("result", "isError")).to be_truthy
       expect(opportunity.activities.count).to eq(0)
+    end
+  end
+
+  describe "stages, closed reasons and archiving" do
+    it "accepts the recommended and applied stages" do
+      payload, error = call_tool("create_opportunity", { company: "Relevant", role: "Engineer", status: "recommended" })
+      expect(error).to be(false)
+      expect(payload["status"]).to eq("recommended")
+
+      opportunity = Opportunity.find(payload["id"])
+      payload, error = call_tool("update_opportunity", { id: opportunity.id, status: "applied" })
+      expect(error).to be(false)
+      expect(payload["status"]).to eq("applied")
+    end
+
+    it "sets status and closed_reason together in one update" do
+      opportunity = create(:opportunity, status: "applied")
+
+      payload, error = call_tool("update_opportunity", { id: opportunity.id, status: "closed", closed_reason: "rejected" })
+
+      expect(error).to be(false)
+      expect(payload).to include("status" => "closed", "closed_reason" => "rejected")
+    end
+
+    it "leaves the card where it was when a field in the same update is invalid" do
+      opportunity = create(:opportunity, status: "applied")
+
+      _message, error = call_tool("update_opportunity", { id: opportunity.id, status: "closed", pay_min: 200, pay_max: 100 })
+
+      expect(error).to be(true)
+      expect(opportunity.reload.status).to eq("applied")
+    end
+
+    it "archives and restores without deleting" do
+      opportunity = create(:opportunity, company: "Wunder")
+
+      payload, error = call_tool("archive_opportunity", { id: opportunity.id })
+      expect(error).to be(false)
+      expect(payload["archived_at"]).to be_present
+      expect(Opportunity.count).to eq(1)
+
+      payload, = call_tool("archive_opportunity", { id: opportunity.id, archived: false })
+      expect(payload["archived_at"]).to be_nil
+    end
+
+    it "hides archived records from search and the summary unless asked" do
+      create(:opportunity, company: "Live Co", status: "talking")
+      create(:opportunity, company: "Gone Co", status: "talking").archive!
+
+      payload, = call_tool("search_opportunities", {})
+      expect(payload["opportunities"].pluck("company")).to eq([ "Live Co" ])
+
+      payload, = call_tool("search_opportunities", { include_archived: true })
+      expect(payload["opportunities"].pluck("company")).to contain_exactly("Live Co", "Gone Co")
+
+      payload, = call_tool("pipeline_summary", {})
+      expect(payload["counts"]["talking"]).to eq(1)
+    end
+
+    it "reports an unknown id for archive" do
+      message, error = call_tool("archive_opportunity", { id: 0 })
+
+      expect(error).to be(true)
+      expect(message).to include("No opportunity with id 0")
     end
   end
 end

@@ -5,14 +5,25 @@
 // `as const` arrays give us both a runtime list (for board columns, <select>
 // options) and a union type derived from it, so the two can never drift apart.
 export const STATUSES = [
+  "recommended",
   "not_contacted",
   "contacted",
+  "applied",
   "talking",
   "interviewing",
   "offer",
   "closed",
 ] as const;
 export type Status = (typeof STATUSES)[number];
+
+export const CLOSED_REASONS = [
+  "rejected",
+  "withdrew",
+  "posting_closed",
+  "mistake",
+  "other",
+] as const;
+export type ClosedReason = (typeof CLOSED_REASONS)[number];
 
 export const KINDS = ["full_time", "contract_w2", "contract_c2c"] as const;
 export type Kind = (typeof KINDS)[number];
@@ -34,6 +45,7 @@ export interface Opportunity {
   kind: Kind | null;
   source: Source | null;
   status: Status;
+  closed_reason: ClosedReason | null;
   pay_min: number | null;
   pay_max: number | null;
   pay_unit: PayUnit | null;
@@ -42,6 +54,8 @@ export interface Opportunity {
   follow_up_on: string | null;
   notes: string | null;
   position: number;
+  // Set when the opportunity is archived (hidden, not deleted).
+  archived_at: string | null;
 }
 
 export interface Activity {
@@ -71,6 +85,8 @@ export interface OpportunityQuery {
   status: Status | "";
   kind: Kind | "";
   dir: SortDirection;
+  // true = show only archived opportunities.
+  archived: boolean;
 }
 
 export interface OpportunitiesIndexProps {
@@ -100,6 +116,7 @@ export interface OpportunityFormData {
   kind: Kind | "";
   source: Source | "";
   status: Status;
+  closed_reason: ClosedReason | "";
   pay_min: string;
   pay_max: string;
   pay_unit: PayUnit | "";

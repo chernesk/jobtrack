@@ -1,7 +1,7 @@
 class HomeController < ApplicationController
   def index
     today = Date.current
-    counts = Opportunity.group(:status).count
+    counts = Opportunity.active.group(:status).count
 
     render inertia: "Home/Index", props: {
       # `today` comes from the server so "overdue" never depends on the browser's clock or time zone.

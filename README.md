@@ -68,11 +68,13 @@ GitHub Actions runs RuboCop, Brakeman, bundler-audit, RSpec, ESLint, Prettier, `
 
 **SQLite in production.** This is a single-user app, so SQLite is a good fit and removes a moving part: Rails 8 runs the app, Solid Queue (jobs), Solid Cache and Solid Cable each in their own SQLite file on one persistent volume. The one place the model had to care was search: it uses Arel's `matches` (a case-insensitive `LIKE` with explicit escaping) rather than Postgres-only `ILIKE`. Development, CI and production all use the same database, so there is no "works on my Postgres" gap. The trade-offs are one writer at a time and one server; neither matters here.
 
-**Rails enums.** Status, kind, source and pay unit are string-backed enums with `validate: true`, so a bad value is a normal validation error rather than an exception.
+**Pipeline stages.** Eight statuses run left to right: recommended (a good match not yet acted on), not contacted, contacted, applied (sent, no reply yet), talking, interviewing, offer, closed. A closed opportunity can carry a reason (rejected, withdrew, posting closed, created by mistake, other), which is cleared if it is reopened. Archiving hides a record everywhere without deleting it.
+
+**Rails enums.** Status, kind, source, pay unit and closed reason are string-backed enums with `validate: true`, so a bad value is a normal validation error rather than an exception.
 
 ## JSON API
 
-The web UI is Inertia, so it has no public API. A small token-authenticated one lives under `/api/v1/opportunities` for scripts and other clients: list (`q`, `status`, `kind`, `dir` filters), show, create and update, with the same fields and validations as the form.
+The web UI is Inertia, so it has no public API. A small token-authenticated one lives under `/api/v1/opportunities` for scripts and other clients: list (`q`, `status`, `kind`, `dir` filters, and `archived=true` to include archived records), show, create and update, with the same fields and validations as the form.
 
 ```sh
 bin/rails 'api_tokens:create[you@example.com,laptop]'   # prints a token once
@@ -83,7 +85,7 @@ curl -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/jso
 
 Errors are JSON: 401 for a missing or wrong token, 404 for an unknown id, 422 with `{"errors": {"field": ["message"]}}` for invalid data, 400 for a body without `opportunity`.
 
-**Design notes.** The API controllers inherit from `ActionController::API`, so there are no cookies, sessions or CSRF to reason about, and a browser session does not authenticate an API call. Only a SHA-256 digest of each token is stored (tokens are long random strings, so a slow password hash is unnecessary and the indexed lookup stays cheap), and the plaintext is shown once when issued. Requests are rate limited to 120 a minute. The editable fields come from one constant, `Opportunity::EDITABLE_ATTRIBUTES`, shared with the web form, so the two cannot drift. There is no delete, pagination or board-move endpoint yet, because the app has none of those in the UI either.
+**Design notes.** The API controllers inherit from `ActionController::API`, so there are no cookies, sessions or CSRF to reason about, and a browser session does not authenticate an API call. Only a SHA-256 digest of each token is stored (tokens are long random strings, so a slow password hash is unnecessary and the indexed lookup stays cheap), and the plaintext is shown once when issued. Requests are rate limited to 120 a minute. The editable fields come from one constant, `Opportunity::EDITABLE_ATTRIBUTES`, shared with the web form, so the two cannot drift. There is no delete, archive, pagination or board-move endpoint yet, because the app has none of those in the UI either.
 
 ## Connecting an AI assistant (MCP)
 
@@ -97,15 +99,16 @@ Point the assistant at `http://<your-host>:3200/mcp` (transport "streamable HTTP
 
 | Tool | What it does |
 |---|---|
-| `search_opportunities` | List opportunities, filtered by text, status or kind |
+| `search_opportunities` | List opportunities, filtered by text, status or kind (archived ones only with `include_archived`) |
 | `get_opportunity` | One opportunity with its full activity history |
 | `follow_ups_due` | Open opportunities whose follow-up is today or overdue |
 | `pipeline_summary` | Counts per status, and how many follow-ups are due |
 | `create_opportunity` | Add an opportunity |
 | `update_opportunity` | Change fields; a status change moves the card to the bottom of its column |
+| `archive_opportunity` | Hide an entry made by mistake, or restore it. Nothing is deleted |
 | `log_activity` | Record an email, call, interview or note |
 
-**Design notes.** It is a small Rack app (`JobTrackMcp::Endpoint`) built on the official Ruby SDK and mounted in the Rails routes, so there is nothing extra to deploy. It is stateless, so each request stands alone and a restart strands no one. The tools call the same models as the web app, with the same validations, so the assistant cannot save anything the form would reject; bad input comes back as a readable tool error. Dates are checked rather than silently dropped. Read-only tools are annotated as such so a client can allow them without prompting. There is deliberately no delete tool, and the server tells the model to treat text in opportunities as data, not instructions, since job postings and emails are untrusted text that could try to steer an assistant. Anyone with a token can read and change your data, so keep it private and revoke it by deleting its row in the console (`ApiToken.find_by(name: "assistant").destroy`).
+**Design notes.** It is a small Rack app (`JobTrackMcp::Endpoint`) built on the official Ruby SDK and mounted in the Rails routes, so there is nothing extra to deploy. It is stateless, so each request stands alone and a restart strands no one. The tools call the same models as the web app, with the same validations, so the assistant cannot save anything the form would reject; bad input comes back as a readable tool error. Dates are checked rather than silently dropped. Read-only tools are annotated as such so a client can allow them without prompting. There is deliberately no delete tool: a mistaken entry is archived (hidden from the board, list, counts and reminders, and reversible), and a real job that ended is closed with a reason. The server tells the model to treat text in opportunities as data, not instructions, since job postings and emails are untrusted text that could try to steer an assistant. Anyone with a token can read and change your data, so keep it private and revoke it by deleting its row in the console (`ApiToken.find_by(name: "assistant").destroy`).
 
 ## How it was built
 

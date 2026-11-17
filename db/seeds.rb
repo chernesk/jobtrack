@@ -17,19 +17,19 @@ return if Opportunity.exists?
 
 today = Date.current
 
-# [company, role, kind, source, status, pay, contacted (days ago), follow-up (days from today), notes, activities]
+# [company, role, kind, source, status, pay, contacted (days ago), follow-up (days from today), notes, activities, closed reason]
 # pay: [min, max, unit] or nil. activities: [kind, days_ago, body]
 opportunities = [
-  [ "Acme Logistics", "Senior Rails Engineer", "full_time", "job_board", "not_contacted", [ 165_000, 195_000, "yearly" ], nil, nil,
+  [ "Acme Logistics", "Senior Rails Engineer", "full_time", "job_board", "recommended", [ 165_000, 195_000, "yearly" ], nil, nil,
     "Found on a job board. Warehouse routing product.",
     [ [ "note", 1, "Bookmarked the posting; want to tailor the resume first." ] ] ],
-  [ "Northwind Health", "Staff Software Engineer", "full_time", "network", "not_contacted", [ 185_000, 220_000, "yearly" ], nil, nil,
+  [ "Northwind Health", "Staff Software Engineer", "full_time", "network", "recommended", [ 185_000, 220_000, "yearly" ], nil, nil,
     "A former teammate offered an intro.",
     [ [ "note", 2, "Asked for an intro; waiting on a reply." ] ] ],
   [ "Contoso Freight", "Rails Contractor", "contract_c2c", "recruiter", "not_contacted", [ 95, 115, "hourly" ], nil, nil,
     "Six-month contract, remote.",
     [ [ "email", 1, "Recruiter sent the job description." ] ] ],
-  [ "Globex Payments", "Backend Engineer", "full_time", "direct", "contacted", [ 160_000, 190_000, "yearly" ], 6, -1,
+  [ "Globex Payments", "Backend Engineer", "full_time", "direct", "applied", [ 160_000, 190_000, "yearly" ], 6, -1,
     "Applied directly through the careers page.",
     [ [ "email", 6, "Sent application and a short cover note." ],
       [ "note", 3, "No reply yet; follow up this week." ] ] ],
@@ -80,17 +80,19 @@ opportunities = [
     "Role was filled internally.",
     [ [ "email", 45, "Recruiter reached out." ],
       [ "interview", 30, "Technical screen." ],
-      [ "email", 15, "Told the role was filled; closing this out." ] ] ],
+      [ "email", 15, "Told the role was filled; closing this out." ] ],
+    "posting_closed" ],
   [ "Oscorp Labs", "Rails Engineer", "full_time", "job_board", "closed", nil, 30, nil,
     "Pay range was not listed, and the role was onsite only.",
     [ [ "email", 30, "Applied." ],
-      [ "note", 20, "Passed: onsite five days a week." ] ] ]
+      [ "note", 20, "Passed: onsite five days a week." ] ],
+    "withdrew" ]
 ]
 
-opportunities.each do |company, role, kind, source, status, pay, contacted_ago, follow_up_in, notes, activities|
+opportunities.each do |company, role, kind, source, status, pay, contacted_ago, follow_up_in, notes, activities, closed_reason|
   pay_min, pay_max, pay_unit = pay
   opportunity = Opportunity.create!(
-    company: company, role: role, kind: kind, source: source, status: status,
+    company: company, role: role, kind: kind, source: source, status: status, closed_reason: closed_reason,
     pay_min: pay_min, pay_max: pay_max, pay_unit: pay_unit || "yearly",
     contacted_on: contacted_ago && today - contacted_ago,
     follow_up_on: follow_up_in && today + follow_up_in,

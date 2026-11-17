@@ -30,7 +30,7 @@ RSpec.describe "Opportunities", type: :request do
         get opportunities_path, headers: inertia
 
         expect(response.parsed_body["component"]).to eq("Opportunities/Index")
-        expect(props["filters"]).to eq("q" => "", "status" => "", "kind" => "", "dir" => "asc")
+        expect(props["filters"]).to eq("q" => "", "status" => "", "kind" => "", "dir" => "asc", "archived" => false)
         expect(props["opportunities"].first).to include(
           "company" => "Acme Logistics", "status" => "talking", "pay_min" => 90, "pay_max" => 110, "pay_unit" => "hourly"
         )
@@ -77,7 +77,7 @@ RSpec.describe "Opportunities", type: :request do
         get opportunities_path, params: { status: "ghosted", kind: "unpaid", dir: "sideways" }, headers: inertia
 
         expect(companies).to eq([ "Acme" ])
-        expect(props["filters"]).to eq("q" => "", "status" => "", "kind" => "", "dir" => "asc")
+        expect(props["filters"]).to eq("q" => "", "status" => "", "kind" => "", "dir" => "asc", "archived" => false)
       end
 
       it "does not blow up on tampered (non-string) params" do

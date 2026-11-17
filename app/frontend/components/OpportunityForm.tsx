@@ -1,13 +1,21 @@
 import { Link, useForm } from "@inertiajs/react";
 import type { FormEvent } from "react";
 
-import { KIND_LABELS, PAY_UNIT_LABELS, SOURCE_LABELS, STATUS_LABELS } from "../lib/labels";
+import {
+  CLOSED_REASON_LABELS,
+  KIND_LABELS,
+  PAY_UNIT_LABELS,
+  SOURCE_LABELS,
+  STATUS_LABELS,
+} from "../lib/labels";
 import { requiredErrors, toFormData } from "../lib/opportunityForm";
 import {
+  CLOSED_REASONS,
   KINDS,
   PAY_UNITS,
   SOURCES,
   STATUSES,
+  type ClosedReason,
   type Kind,
   type Opportunity,
   type OpportunityFormData,
@@ -124,6 +132,27 @@ export default function OpportunityForm({ opportunity }: OpportunityFormProps) {
           )}
         </Field>
       </div>
+
+      {data.status === "closed" && (
+        <Field label="Why did it close?" error={errors.closed_reason}>
+          {(control) => (
+            <select
+              {...control}
+              value={data.closed_reason}
+              onChange={(event) =>
+                setData("closed_reason", event.target.value as ClosedReason | "")
+              }
+            >
+              <option value="">Not set</option>
+              {CLOSED_REASONS.map((reason) => (
+                <option key={reason} value={reason}>
+                  {CLOSED_REASON_LABELS[reason]}
+                </option>
+              ))}
+            </select>
+          )}
+        </Field>
+      )}
 
       <div className="grid gap-5 sm:grid-cols-3">
         <Field label="Minimum pay" error={errors.pay_min}>

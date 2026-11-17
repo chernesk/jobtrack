@@ -1,13 +1,14 @@
-import { Link } from "@inertiajs/react";
+import { Link, router } from "@inertiajs/react";
 import type { ReactNode } from "react";
 
+import Button from "../../components/Button";
 import ActivityForm from "../../components/ActivityForm";
 import ActivityTimeline from "../../components/ActivityTimeline";
 import Layout from "../../components/Layout";
 import PayRange from "../../components/PayRange";
 import StatusBadge from "../../components/StatusBadge";
 import { formatDate } from "../../lib/dates";
-import { KIND_LABELS, SOURCE_LABELS } from "../../lib/labels";
+import { CLOSED_REASON_LABELS, KIND_LABELS, SOURCE_LABELS } from "../../lib/labels";
 import type { OpportunityShowProps } from "../../types";
 
 // Only http(s) URLs become links. The value is user-entered text, and a
@@ -18,6 +19,16 @@ function isWebUrl(value: string): boolean {
 
 export default function Show({ opportunity, activities }: OpportunityShowProps) {
   const facts: { label: string; value: ReactNode }[] = [
+    ...(opportunity.status === "closed"
+      ? [
+          {
+            label: "Closed because",
+            value: opportunity.closed_reason
+              ? CLOSED_REASON_LABELS[opportunity.closed_reason]
+              : "—",
+          },
+        ]
+      : []),
     { label: "Type", value: opportunity.kind ? KIND_LABELS[opportunity.kind] : "—" },
     { label: "Source", value: opportunity.source ? SOURCE_LABELS[opportunity.source] : "—" },
     {
@@ -68,6 +79,21 @@ export default function Show({ opportunity, activities }: OpportunityShowProps) 
         </div>
         <div className="flex items-center gap-3">
           <StatusBadge status={opportunity.status} />
+          {opportunity.archived_at ? (
+            <Button
+              variant="secondary"
+              onClick={() => router.patch(`/opportunities/${opportunity.id}/restore`)}
+            >
+              Restore
+            </Button>
+          ) : (
+            <Button
+              variant="secondary"
+              onClick={() => router.patch(`/opportunities/${opportunity.id}/archive`)}
+            >
+              Archive
+            </Button>
+          )}
           <Link
             href={`/opportunities/${opportunity.id}/edit`}
             className="rounded px-4 py-2 text-sm font-medium text-slate-900 dark:text-slate-100 ring-1 ring-inset ring-slate-300 dark:ring-slate-600 hover:bg-slate-50 dark:hover:bg-slate-800"
@@ -76,6 +102,16 @@ export default function Show({ opportunity, activities }: OpportunityShowProps) 
           </Link>
         </div>
       </div>
+
+      {opportunity.archived_at && (
+        <p
+          role="status"
+          className="mt-4 rounded bg-amber-50 px-4 py-2 text-sm text-amber-900 dark:bg-amber-950 dark:text-amber-200"
+        >
+          Archived {formatDate(opportunity.archived_at.slice(0, 10))}. It is hidden from the board,
+          the list and the counts.
+        </p>
+      )}
 
       <dl className="mt-6 grid gap-x-8 gap-y-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-5 sm:grid-cols-3">
         {facts.map((fact) => (

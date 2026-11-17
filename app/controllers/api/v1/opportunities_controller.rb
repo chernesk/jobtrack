@@ -2,7 +2,8 @@ module Api
   module V1
     class OpportunitiesController < BaseController
       def index
-        opportunities = Opportunity.search(params[:q].to_s)
+        # Archived records are left out unless asked for with ?archived=true.
+        opportunities = (params[:archived].to_s == "true" ? Opportunity.all : Opportunity.active).search(params[:q].to_s)
           .with_status(params[:status].to_s).with_kind(params[:kind].to_s)
           .by_follow_up(params[:dir].to_s == "desc" ? :desc : :asc)
 

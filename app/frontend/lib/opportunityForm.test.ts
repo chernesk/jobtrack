@@ -16,6 +16,8 @@ const OPPORTUNITY: Opportunity = {
   follow_up_on: null,
   notes: null,
   position: 1,
+  closed_reason: null,
+  archived_at: null,
 };
 
 describe("toFormData", () => {

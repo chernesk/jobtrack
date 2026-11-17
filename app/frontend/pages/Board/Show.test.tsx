@@ -57,6 +57,8 @@ function card(id: number, company: string, status: Status): Opportunity {
     follow_up_on: null,
     notes: null,
     position: id,
+    closed_reason: null,
+    archived_at: null,
   };
 }
 
@@ -92,7 +94,7 @@ describe("Board/Show", () => {
   it("shows a column per status with counts, and each card in its column", () => {
     render(<Show opportunities={OPPORTUNITIES} />);
 
-    expect(screen.getAllByRole("region")).toHaveLength(6);
+    expect(screen.getAllByRole("region")).toHaveLength(8);
     expect(companiesIn("Contacted")).toEqual(["Acme Logistics", "Globex Payments"]);
     expect(companiesIn("Talking")).toEqual(["Northwind Health"]);
     expect(companiesIn("Offer")).toEqual([]);

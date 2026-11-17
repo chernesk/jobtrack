@@ -41,6 +41,14 @@ describe("OpportunityFilters", () => {
     expect(onChange).toHaveBeenCalledWith({ ...DEFAULT_QUERY, status: "talking" });
   });
 
+  it("reports the archived-only toggle immediately", async () => {
+    renderFilters();
+
+    await user().click(screen.getByLabelText("Archived only"));
+
+    expect(onChange).toHaveBeenCalledWith({ ...DEFAULT_QUERY, archived: true });
+  });
+
   it("reports a type change immediately", async () => {
     renderFilters();
 
@@ -63,7 +71,13 @@ describe("OpportunityFilters", () => {
   });
 
   it("shows the current filter values", () => {
-    renderFilters({ q: "acme", status: "offer", kind: "contract_c2c", dir: "asc" });
+    renderFilters({
+      q: "acme",
+      status: "offer",
+      kind: "contract_c2c",
+      dir: "asc",
+      archived: false,
+    });
 
     expect(screen.getByLabelText("Search")).toHaveValue("acme");
     expect(screen.getByLabelText("Status")).toHaveValue("offer");

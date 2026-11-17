@@ -5,8 +5,9 @@ class OpportunitiesController < ApplicationController
     status = params[:status].to_s
     kind = params[:kind].to_s
     direction = params[:dir].to_s == "desc" ? "desc" : "asc"
+    archived = params[:archived].to_s == "1"
 
-    opportunities = Opportunity.search(query).with_status(status).with_kind(kind).by_follow_up(direction)
+    opportunities = (archived ? Opportunity.archived : Opportunity.active).search(query).with_status(status).with_kind(kind).by_follow_up(direction)
 
     render inertia: "Opportunities/Index", props: {
       opportunities: opportunities.map(&:as_props),
@@ -15,7 +16,8 @@ class OpportunitiesController < ApplicationController
         q: query,
         status: Opportunity.statuses.key?(status) ? status : "",
         kind: Opportunity.kinds.key?(kind) ? kind : "",
-        dir: direction
+        dir: direction,
+        archived: archived
       }
     }
   end
@@ -58,6 +60,19 @@ class OpportunitiesController < ApplicationController
     else
       redirect_to edit_opportunity_path(opportunity), inertia: { errors: first_errors(opportunity) }
     end
+  end
+
+  # Archiving hides an opportunity without deleting it; restoring puts it back.
+  def archive
+    opportunity = find_opportunity
+    opportunity.archive!
+    redirect_to opportunities_path, notice: "#{opportunity.company} archived."
+  end
+
+  def restore
+    opportunity = find_opportunity
+    opportunity.unarchive!
+    redirect_to opportunity_path(opportunity), notice: "#{opportunity.company} restored."
   end
 
   # Called by the board after a drag. `index` is the card's new 0-based place in the

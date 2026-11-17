@@ -16,7 +16,7 @@ vi.mock("@inertiajs/react", () => ({
   }),
 }));
 
-const NO_FILTERS: OpportunityQuery = { q: "", status: "", kind: "", dir: "asc" };
+const NO_FILTERS: OpportunityQuery = { q: "", status: "", kind: "", dir: "asc", archived: false };
 const VISIT_OPTIONS = { preserveState: true, replace: true };
 
 function build(id: number, company: string): Opportunity {
@@ -35,6 +35,8 @@ function build(id: number, company: string): Opportunity {
     follow_up_on: null,
     notes: null,
     position: id,
+    closed_reason: null,
+    archived_at: null,
   };
 }
 

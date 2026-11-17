@@ -1,13 +1,15 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import type { AnchorHTMLAttributes } from "react";
 import { vi } from "vitest";
 
+import { router } from "@inertiajs/react";
 import type { Opportunity } from "../../types";
 import Show from "./Show";
 
 vi.mock("@inertiajs/react", () => ({
   Link: (props: AnchorHTMLAttributes<HTMLAnchorElement>) => <a {...props} />,
-  router: { get: vi.fn(), delete: vi.fn() },
+  router: { get: vi.fn(), delete: vi.fn(), patch: vi.fn() },
   useForm: () => ({
     data: { kind: "email", occurred_on: "2026-11-14", body: "" },
     errors: {},
@@ -40,6 +42,8 @@ const OPPORTUNITY: Opportunity = {
   follow_up_on: "2026-11-20",
   notes: "Spoke with the hiring manager",
   position: 1,
+  closed_reason: null,
+  archived_at: null,
 };
 
 describe("Opportunities/Show", () => {
@@ -57,6 +61,36 @@ describe("Opportunities/Show", () => {
       "href",
       "/opportunities/7/edit",
     );
+  });
+
+  it("shows why a closed opportunity closed", () => {
+    render(
+      <Show
+        opportunity={{ ...OPPORTUNITY, status: "closed", closed_reason: "posting_closed" }}
+        activities={[]}
+      />,
+    );
+
+    expect(screen.getByText("Closed because")).toBeInTheDocument();
+    expect(screen.getByText("Posting closed")).toBeInTheDocument();
+  });
+
+  it("archives with one click, and offers restore once archived", async () => {
+    const { unmount } = render(<Show opportunity={OPPORTUNITY} activities={[]} />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Archive" }));
+    expect(router.patch).toHaveBeenCalledWith("/opportunities/7/archive");
+    unmount();
+
+    render(
+      <Show
+        opportunity={{ ...OPPORTUNITY, archived_at: "2026-11-17T12:00:00Z" }}
+        activities={[]}
+      />,
+    );
+    expect(screen.getByRole("status")).toHaveTextContent("Archived Nov 17, 2026");
+    await userEvent.click(screen.getByRole("button", { name: "Restore" }));
+    expect(router.patch).toHaveBeenCalledWith("/opportunities/7/restore");
   });
 
   it("opens the posting safely in a new tab", () => {
