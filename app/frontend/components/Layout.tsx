@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 
 import type { SharedProps } from "../types";
 import Button from "./Button";
+import LogoMark from "./LogoMark";
 import ThemeToggle from "./ThemeToggle";
 
 const NAV_ITEMS = [
@@ -36,7 +37,10 @@ export default function Layout({ children, wide = false }: LayoutProps) {
           aria-label="Main"
           className={`mx-auto flex items-center gap-6 px-6 py-3 ${wide ? "max-w-[96rem]" : "max-w-6xl"}`}
         >
-          <span className="text-lg font-semibold">JobTrack</span>
+          <Link href="/" className="flex items-center gap-2 text-lg font-semibold">
+            <LogoMark />
+            JobTrack
+          </Link>
           <ul className="flex flex-1 gap-4">
             {NAV_ITEMS.map((item) => (
               <li key={item.href}>
