@@ -55,7 +55,7 @@ export default function OpportunityFilters({ query, onChange, onClear }: Opportu
             <input
               {...control}
               type="search"
-              placeholder="Company or role"
+              placeholder="Company, role or posting ID"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
             />

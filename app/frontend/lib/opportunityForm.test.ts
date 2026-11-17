@@ -18,6 +18,8 @@ const OPPORTUNITY: Opportunity = {
   position: 1,
   closed_reason: null,
   archived_at: null,
+  external_id: null,
+  last_verified_on: null,
 };
 
 describe("toFormData", () => {
@@ -35,6 +37,8 @@ describe("toFormData", () => {
       url: "",
       contacted_on: "2026-11-01",
       notes: "",
+      external_id: "",
+      last_verified_on: "",
     });
   });
 });

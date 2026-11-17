@@ -19,6 +19,8 @@ function card(id: number, status: Status): Opportunity {
     position: id,
     closed_reason: null,
     archived_at: null,
+    external_id: null,
+    last_verified_on: null,
   };
 }
 

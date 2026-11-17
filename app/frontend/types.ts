@@ -56,6 +56,10 @@ export interface Opportunity {
   position: number;
   // Set when the opportunity is archived (hidden, not deleted).
   archived_at: string | null;
+  // The job board's own id for the posting; unique when present.
+  external_id: string | null;
+  // The date the posting was last confirmed still live.
+  last_verified_on: string | null;
 }
 
 export interface Activity {
@@ -124,6 +128,8 @@ export interface OpportunityFormData {
   contacted_on: string;
   follow_up_on: string;
   notes: string;
+  external_id: string;
+  last_verified_on: string;
 }
 
 export interface OpportunityEditProps {

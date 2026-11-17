@@ -45,6 +45,11 @@ export default function Show({ opportunity, activities }: OpportunityShowProps) 
       label: "Follow up",
       value: opportunity.follow_up_on ? formatDate(opportunity.follow_up_on) : "—",
     },
+    { label: "Posting ID", value: opportunity.external_id ?? "—" },
+    {
+      label: "Posting verified",
+      value: opportunity.last_verified_on ? formatDate(opportunity.last_verified_on) : "Not yet",
+    },
     {
       label: "Posting",
       value:

@@ -5,15 +5,20 @@ class Opportunity < ApplicationRecord
   # Statuses that still need attention (used by the follow-up reminder).
   OPEN_STATUSES = (STATUSES - %w[closed]).freeze
 
+  # Statuses where the posting itself may still disappear or fill. Once someone is talking to you the
+  # posting no longer matters, so these are the ones worth re-checking.
+  POSTING_STATUSES = %w[recommended not_contacted contacted applied].freeze
+
   # Attributes sent to React pages (typed as `Opportunity` in app/frontend/types.ts).
   PROP_ATTRIBUTES = %w[
     id company role kind source status closed_reason pay_min pay_max pay_unit url
-    contacted_on follow_up_on notes position archived_at
+    contacted_on follow_up_on notes position archived_at external_id last_verified_on
   ].freeze
 
   # Fields a user may set (web form and JSON API). `position` is owned by the board.
   EDITABLE_ATTRIBUTES = %i[
     company role kind source status closed_reason pay_min pay_max pay_unit url contacted_on follow_up_on notes
+    external_id last_verified_on
   ].freeze
   # Optional enums: an empty value means "not chosen".
   NULLABLE_ENUMS = %w[kind source pay_unit closed_reason].freeze
@@ -31,6 +36,13 @@ class Opportunity < ApplicationRecord
     mistake: "mistake", other: "other"
   }, prefix: :closed_because, validate: { allow_nil: true }
   enum :pay_unit, { hourly: "hourly", yearly: "yearly" }, validate: { allow_nil: true }
+
+  # The job board's own id (or any stable key). Unique when present, so the same posting is never
+  # tracked twice; many records may have none.
+  before_validation { self.external_id = external_id.to_s.strip.presence }
+  validates :external_id, uniqueness: { message: "is already tracked" }, allow_nil: true
+
+  validate :url_not_already_tracked, if: -> { url_changed? && url.present? }
 
   validates :company, :role, presence: true
   validates :pay_min, :pay_max, numericality: { only_integer: true, greater_than_or_equal_to: 0, allow_nil: true }
@@ -51,12 +63,22 @@ class Opportunity < ApplicationRecord
     # Arel's `matches` is a case-insensitive LIKE on every database (ILIKE on Postgres,
     # LIKE ... ESCAPE on SQLite), so the wildcard escaping below works on either.
     pattern = "%#{sanitize_sql_like(term)}%"
-    where(arel_table[:company].matches(pattern, "\\").or(arel_table[:role].matches(pattern, "\\"))) if term.present?
+    if term.present?
+      where(arel_table[:company].matches(pattern, "\\").or(arel_table[:role].matches(pattern, "\\"))
+        .or(arel_table[:external_id].matches(pattern, "\\")))
+    end
   }
   # Soonest follow-up first by default; records without a follow-up date sort last either way.
   scope :by_follow_up, lambda { |direction = :asc|
     column = arel_table[:follow_up_on]
     order(direction.to_s == "desc" ? column.desc.nulls_last : column.asc.nulls_last, :company, :id)
+  }
+
+  # Postings not checked since `before` (or never), oldest first. Archived and late-stage records are left out.
+  scope :stale_postings, lambda { |before|
+    column = arel_table[:last_verified_on]
+    active.where(status: POSTING_STATUSES).where(column.eq(nil).or(column.lt(before)))
+      .order(column.asc.nulls_first, :company, :id)
   }
 
   # Open opportunities whose follow-up date is `on` or earlier (today or overdue),
@@ -81,6 +103,28 @@ class Opportunity < ApplicationRecord
 
   # New cards land at the bottom of their status column.
   before_create :assign_position, if: -> { position.zero? }
+
+  # The existing record that `external_id` or `url` points at, if any (archived ones included, so an
+  # archived entry is not re-added by accident). A URL matches ignoring case in the host, a trailing
+  # slash and any #fragment. Compared in Ruby: this is a personal tracker, so the table is small.
+  def self.find_duplicate(external_id: nil, url: nil)
+    key = external_id.to_s.strip
+    return find_by(external_id: key) if key.present? && exists?(external_id: key)
+
+    target = normalize_url(url)
+    return if target.blank?
+
+    where.not(url: [ nil, "" ]).find { |opportunity| normalize_url(opportunity.url) == target }
+  end
+
+  def self.normalize_url(value)
+    uri = URI.parse(value.to_s.strip)
+    return value.to_s.strip.presence unless uri.host
+
+    "#{uri.scheme}://#{uri.host.downcase}#{uri.port == uri.default_port ? "" : ":#{uri.port}"}#{uri.path.chomp("/")}#{"?#{uri.query}" if uri.query}"
+  rescue URI::InvalidURIError
+    value.to_s.strip.presence
+  end
 
   def archived?
     archived_at.present?
@@ -148,6 +192,11 @@ class Opportunity < ApplicationRecord
     self.class.active.where(status: column_status).order(:position, :id).each.with_index(1) do |card, position|
       card.update_columns(position: position) unless card.position == position
     end
+  end
+
+  def url_not_already_tracked
+    existing = self.class.find_duplicate(url: url)
+    errors.add(:url, "is already tracked (#{existing.company}, #{existing.role})") if existing && existing != self
   end
 
   def pay_max_not_below_pay_min

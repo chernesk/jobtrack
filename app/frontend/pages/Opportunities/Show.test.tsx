@@ -44,6 +44,8 @@ const OPPORTUNITY: Opportunity = {
   position: 1,
   closed_reason: null,
   archived_at: null,
+  external_id: null,
+  last_verified_on: null,
 };
 
 describe("Opportunities/Show", () => {
@@ -61,6 +63,21 @@ describe("Opportunities/Show", () => {
       "href",
       "/opportunities/7/edit",
     );
+  });
+
+  it("shows the posting id and when the posting was last verified", () => {
+    const { unmount } = render(<Show opportunity={OPPORTUNITY} activities={[]} />);
+    expect(screen.getByText("Not yet")).toBeInTheDocument();
+    unmount();
+
+    render(
+      <Show
+        opportunity={{ ...OPPORTUNITY, external_id: "42472", last_verified_on: "2026-11-17" }}
+        activities={[]}
+      />,
+    );
+    expect(screen.getByText("42472")).toBeInTheDocument();
+    expect(screen.getByText("Nov 17, 2026")).toBeInTheDocument();
   });
 
   it("shows why a closed opportunity closed", () => {

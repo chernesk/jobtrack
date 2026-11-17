@@ -209,6 +209,29 @@ export default function OpportunityForm({ opportunity }: OpportunityFormProps) {
       </Field>
 
       <div className="grid gap-5 sm:grid-cols-2">
+        <Field label="Posting ID" error={errors.external_id}>
+          {(control) => (
+            <input
+              {...control}
+              placeholder="The job board's id, e.g. 42472"
+              value={data.external_id}
+              onChange={(event) => setData("external_id", event.target.value)}
+            />
+          )}
+        </Field>
+        <Field label="Posting last verified" error={errors.last_verified_on}>
+          {(control) => (
+            <input
+              {...control}
+              type="date"
+              value={data.last_verified_on}
+              onChange={(event) => setData("last_verified_on", event.target.value)}
+            />
+          )}
+        </Field>
+      </div>
+
+      <div className="grid gap-5 sm:grid-cols-2">
         <Field label="Contacted on" error={errors.contacted_on}>
           {(control) => (
             <input

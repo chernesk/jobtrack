@@ -52,6 +52,8 @@ const EXISTING: Opportunity = {
   position: 1,
   closed_reason: null,
   archived_at: null,
+  external_id: null,
+  last_verified_on: null,
 };
 
 describe("OpportunityForm", () => {
@@ -82,6 +84,17 @@ describe("OpportunityForm", () => {
     expect(post).toHaveBeenCalledWith("/opportunities");
     expect(patch).not.toHaveBeenCalled();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("fills the posting id and verified date when editing", () => {
+    render(
+      <OpportunityForm
+        opportunity={{ ...EXISTING, external_id: "42472", last_verified_on: "2026-11-17" }}
+      />,
+    );
+
+    expect(screen.getByLabelText("Posting ID")).toHaveValue("42472");
+    expect(screen.getByLabelText("Posting last verified")).toHaveValue("2026-11-17");
   });
 
   it("asks why it closed only when the status is closed", () => {
