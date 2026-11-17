@@ -1,10 +1,16 @@
 name: Publish image
 
 # Builds the production image and pushes it to ghcr.io/<owner>/jobtrack so a container host
-# (a NAS, a server) can pull it. Runs when main changes, or by hand from the Actions tab.
+# (a NAS, a server) can pull it.
+#
+# - Pushing a version tag (v1.2.3) publishes 1.2.3, 1.2 and latest. This is how you release.
+# - Pushing to main publishes `edge` and the commit ID, so there is always a build to try,
+#   but `latest` never moves until a release.
+# - It can also be run by hand from the Actions tab.
 on:
   push:
     branches: [main]
+    tags: ["v*"]
   workflow_dispatch:
 
 permissions:
@@ -22,13 +28,21 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/jobtrack
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=edge
+            type=sha,format=long
       - uses: docker/build-push-action@v6
         with:
           context: .
           platforms: linux/amd64
           push: true
-          tags: |
-            ghcr.io/${{ github.repository_owner }}/jobtrack:latest
-            ghcr.io/${{ github.repository_owner }}/jobtrack:${{ github.sha }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
