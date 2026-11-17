@@ -25,6 +25,9 @@ export const CLOSED_REASONS = [
 ] as const;
 export type ClosedReason = (typeof CLOSED_REASONS)[number];
 
+export const APPLICATION_CHANNELS = ["email", "form", "ats", "referral", "other"] as const;
+export type ApplicationChannel = (typeof APPLICATION_CHANNELS)[number];
+
 export const KINDS = ["full_time", "contract_w2", "contract_c2c"] as const;
 export type Kind = (typeof KINDS)[number];
 
@@ -60,6 +63,10 @@ export interface Opportunity {
   external_id: string | null;
   // The date the posting was last confirmed still live.
   last_verified_on: string | null;
+  // Which resume was sent, who to contact, and where the application went.
+  resume_version: string | null;
+  contact_name: string | null;
+  application_channel: ApplicationChannel | null;
 }
 
 export interface Activity {
@@ -130,6 +137,9 @@ export interface OpportunityFormData {
   notes: string;
   external_id: string;
   last_verified_on: string;
+  resume_version: string;
+  contact_name: string;
+  application_channel: ApplicationChannel | "";
 }
 
 export interface OpportunityEditProps {

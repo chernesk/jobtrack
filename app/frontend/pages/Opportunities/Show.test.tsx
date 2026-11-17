@@ -46,6 +46,9 @@ const OPPORTUNITY: Opportunity = {
   archived_at: null,
   external_id: null,
   last_verified_on: null,
+  resume_version: null,
+  contact_name: null,
+  application_channel: null,
 };
 
 describe("Opportunities/Show", () => {
@@ -63,6 +66,27 @@ describe("Opportunities/Show", () => {
       "href",
       "/opportunities/7/edit",
     );
+  });
+
+  it("shows how, with which resume, and to whom the application went", () => {
+    const { unmount } = render(<Show opportunity={OPPORTUNITY} activities={[]} />);
+    expect(screen.getByText("Applied via").nextElementSibling).toHaveTextContent("—");
+    unmount();
+
+    render(
+      <Show
+        opportunity={{
+          ...OPPORTUNITY,
+          application_channel: "ats",
+          resume_version: "backend-v3",
+          contact_name: "Dana Whitfield",
+        }}
+        activities={[]}
+      />,
+    );
+    expect(screen.getByText("Hiring platform")).toBeInTheDocument();
+    expect(screen.getByText("backend-v3")).toBeInTheDocument();
+    expect(screen.getByText("Dana Whitfield")).toBeInTheDocument();
   });
 
   it("shows the posting id and when the posting was last verified", () => {

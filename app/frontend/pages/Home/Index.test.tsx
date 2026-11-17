@@ -34,6 +34,9 @@ function due(id: number, company: string, follow_up_on: string, status: Status):
     archived_at: null,
     external_id: null,
     last_verified_on: null,
+    resume_version: null,
+    contact_name: null,
+    application_channel: null,
   };
 }
 

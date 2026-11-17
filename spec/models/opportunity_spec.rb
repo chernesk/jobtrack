@@ -440,3 +440,26 @@ RSpec.describe Opportunity, ".stale_postings", type: :model do
     expect(described_class.stale_postings(cutoff)).to be_empty
   end
 end
+
+RSpec.describe Opportunity, "application details", type: :model do
+  it "stores the channel, resume version and contact" do
+    opportunity = create(:opportunity, application_channel: "ats", resume_version: "backend-v3", contact_name: "Dana Whitfield")
+
+    expect(opportunity.reload).to have_attributes(application_channel: "ats", resume_version: "backend-v3", contact_name: "Dana Whitfield")
+  end
+
+  it "treats blank text as not recorded" do
+    opportunity = create(:opportunity, resume_version: "  ", contact_name: "")
+
+    expect(opportunity.reload).to have_attributes(resume_version: nil, contact_name: nil)
+  end
+
+  it "trims surrounding spaces" do
+    expect(create(:opportunity, contact_name: "  Dana  ").contact_name).to eq("Dana")
+  end
+
+  it "allows the channel to be unset but rejects an unknown one" do
+    expect(build(:opportunity, application_channel: nil)).to be_valid
+    expect(build(:opportunity, application_channel: "carrier_pigeon")).not_to be_valid
+  end
+end

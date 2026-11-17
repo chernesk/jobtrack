@@ -21,6 +21,9 @@ function card(id: number, status: Status): Opportunity {
     archived_at: null,
     external_id: null,
     last_verified_on: null,
+    resume_version: null,
+    contact_name: null,
+    application_channel: null,
   };
 }
 
