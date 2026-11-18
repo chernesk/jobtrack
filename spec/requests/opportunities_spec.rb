@@ -89,4 +89,20 @@ RSpec.describe "Opportunities", type: :request do
       end
     end
   end
+
+  describe "application details from the form" do
+    before do
+      user = create(:user)
+      post session_path, params: { email_address: user.email_address, password: "password" }
+    end
+
+    it "saves the details and treats an empty channel as not chosen" do
+      post opportunities_path, params: { opportunity: { company: "A", role: "B", application_channel: "form",
+                                                         resume_version: "v3", contact_name: "Dana" } }
+      expect(Opportunity.last).to have_attributes(application_channel: "form", resume_version: "v3", contact_name: "Dana")
+
+      patch opportunity_path(Opportunity.last), params: { opportunity: { application_channel: "" } }
+      expect(Opportunity.last.application_channel).to be_nil
+    end
+  end
 end

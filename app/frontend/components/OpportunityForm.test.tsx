@@ -54,6 +54,9 @@ const EXISTING: Opportunity = {
   archived_at: null,
   external_id: null,
   last_verified_on: null,
+  resume_version: null,
+  contact_name: null,
+  application_channel: null,
 };
 
 describe("OpportunityForm", () => {
@@ -95,6 +98,23 @@ describe("OpportunityForm", () => {
 
     expect(screen.getByLabelText("Posting ID")).toHaveValue("42472");
     expect(screen.getByLabelText("Posting last verified")).toHaveValue("2026-11-17");
+  });
+
+  it("fills the application details when editing", () => {
+    render(
+      <OpportunityForm
+        opportunity={{
+          ...EXISTING,
+          application_channel: "email",
+          resume_version: "backend-v3",
+          contact_name: "Dana Whitfield",
+        }}
+      />,
+    );
+
+    expect(screen.getByLabelText("Applied via")).toHaveValue("email");
+    expect(screen.getByLabelText("Resume version")).toHaveValue("backend-v3");
+    expect(screen.getByLabelText("Contact person")).toHaveValue("Dana Whitfield");
   });
 
   it("asks why it closed only when the status is closed", () => {

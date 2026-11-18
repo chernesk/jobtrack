@@ -104,3 +104,11 @@ opportunities.each do |company, role, kind, source, status, pay, contacted_ago, 
     opportunity.activities.create!(kind: activity_kind, occurred_on: today - days_ago, body: body)
   end
 end
+
+# Application details for a few of the applied-or-later records, so the detail page shows them.
+{
+  "Globex Payments" => { application_channel: "form", resume_version: "backend-2026-11" },
+  "Initech Cloud" => { application_channel: "ats", resume_version: "fullstack-2026-11", contact_name: "Dana Whitfield" },
+  "Stark Robotics" => { application_channel: "referral", resume_version: "senior-2026-11", contact_name: "Pat Alvarez" },
+  "Hooli Maps" => { application_channel: "email", resume_version: "platform-2026-11", contact_name: "Sam Okafor" }
+}.each { |company, details| Opportunity.find_by!(company: company).update!(details) }

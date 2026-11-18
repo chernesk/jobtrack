@@ -5,6 +5,8 @@ module JobTrackMcp
     INSTRUCTIONS = <<~TEXT.freeze
       JobTrack tracks one person's job search. An opportunity is a company and role, with a status
       (#{Opportunity::STATUSES.join(", ")}), optional pay, a follow-up date, and a history of activities.
+      Record pay in pay_min, pay_max and pay_unit (whole dollars), not in the notes. When an application
+      is sent, set status to applied and record application_channel, resume_version and contact_name.
       Use recommended for good matches not yet acted on, and applied once an application is sent. When
       closing something, set closed_reason. Archive entries made by mistake rather than closing them.
       Record the job board's own id as external_id (and the posting url) so a repeat is caught as a duplicate;

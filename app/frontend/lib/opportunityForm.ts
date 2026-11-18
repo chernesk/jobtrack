@@ -16,6 +16,9 @@ export const EMPTY_FORM: OpportunityFormData = {
   notes: "",
   external_id: "",
   last_verified_on: "",
+  resume_version: "",
+  contact_name: "",
+  application_channel: "",
 };
 
 // Rails sends null for anything empty; inputs need "" to stay controlled.
@@ -37,6 +40,9 @@ export function toFormData(opportunity?: Opportunity): OpportunityFormData {
     notes: opportunity.notes ?? "",
     external_id: opportunity.external_id ?? "",
     last_verified_on: opportunity.last_verified_on ?? "",
+    resume_version: opportunity.resume_version ?? "",
+    contact_name: opportunity.contact_name ?? "",
+    application_channel: opportunity.application_channel ?? "",
   };
 }
 

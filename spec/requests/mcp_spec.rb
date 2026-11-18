@@ -400,4 +400,47 @@ RSpec.describe "MCP endpoint", type: :request do
       end
     end
   end
+
+  describe "application details" do
+    it "creates with a channel, resume version and contact" do
+      payload, error = call_tool("create_opportunity", { company: "Relevant", role: "Engineer", status: "applied",
+                                                         application_channel: "email", resume_version: "backend-v3", contact_name: "Dana" })
+
+      expect(error).to be(false)
+      expect(payload).to include("application_channel" => "email", "resume_version" => "backend-v3", "contact_name" => "Dana")
+    end
+
+    it "updates and clears them" do
+      opportunity = create(:opportunity, application_channel: "form", resume_version: "v1", contact_name: "Dana")
+
+      call_tool("update_opportunity", { id: opportunity.id, application_channel: "ats", resume_version: "v2" })
+      expect(opportunity.reload).to have_attributes(application_channel: "ats", resume_version: "v2", contact_name: "Dana")
+
+      _payload, error = call_tool("update_opportunity", { id: opportunity.id, application_channel: nil, contact_name: nil })
+      expect(error).to be(false)
+      expect(opportunity.reload).to have_attributes(application_channel: nil, contact_name: nil)
+    end
+
+    it "rejects an unknown channel" do
+      result = rpc("tools/call", { name: "create_opportunity", arguments: { company: "A", role: "B", application_channel: "fax" } })
+
+      expect(result["error"] || result.dig("result", "isError")).to be_truthy
+      expect(Opportunity.count).to eq(0)
+    end
+
+    it "accepts the details on each item of a bulk create" do
+      payload, = call_tool("bulk_create_opportunities", { opportunities: [
+        { company: "Relevant", role: "Engineer", application_channel: "email", resume_version: "v3" }
+      ] })
+
+      expect(payload["created"]).to eq(1)
+      expect(Opportunity.first).to have_attributes(application_channel: "email", resume_version: "v3")
+    end
+
+    it "tells the assistant to record pay and application details in their own fields" do
+      instructions = rpc("initialize", { protocolVersion: "2025-03-26", capabilities: {}, clientInfo: { name: "t", version: "1" } }).dig("result", "instructions")
+
+      expect(instructions).to include("pay_min", "application_channel")
+    end
+  end
 end

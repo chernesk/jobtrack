@@ -2,6 +2,7 @@ import { Link, useForm } from "@inertiajs/react";
 import type { FormEvent } from "react";
 
 import {
+  APPLICATION_CHANNEL_LABELS,
   CLOSED_REASON_LABELS,
   KIND_LABELS,
   PAY_UNIT_LABELS,
@@ -10,11 +11,13 @@ import {
 } from "../lib/labels";
 import { requiredErrors, toFormData } from "../lib/opportunityForm";
 import {
+  APPLICATION_CHANNELS,
   CLOSED_REASONS,
   KINDS,
   PAY_UNITS,
   SOURCES,
   STATUSES,
+  type ApplicationChannel,
   type ClosedReason,
   type Kind,
   type Opportunity,
@@ -193,6 +196,45 @@ export default function OpportunityForm({ opportunity }: OpportunityFormProps) {
                 </option>
               ))}
             </select>
+          )}
+        </Field>
+      </div>
+
+      <div className="grid gap-5 sm:grid-cols-3">
+        <Field label="Applied via" error={errors.application_channel}>
+          {(control) => (
+            <select
+              {...control}
+              value={data.application_channel}
+              onChange={(event) =>
+                setData("application_channel", event.target.value as ApplicationChannel | "")
+              }
+            >
+              <option value="">Not set</option>
+              {APPLICATION_CHANNELS.map((channel) => (
+                <option key={channel} value={channel}>
+                  {APPLICATION_CHANNEL_LABELS[channel]}
+                </option>
+              ))}
+            </select>
+          )}
+        </Field>
+        <Field label="Resume version" error={errors.resume_version}>
+          {(control) => (
+            <input
+              {...control}
+              value={data.resume_version}
+              onChange={(event) => setData("resume_version", event.target.value)}
+            />
+          )}
+        </Field>
+        <Field label="Contact person" error={errors.contact_name}>
+          {(control) => (
+            <input
+              {...control}
+              value={data.contact_name}
+              onChange={(event) => setData("contact_name", event.target.value)}
+            />
           )}
         </Field>
       </div>

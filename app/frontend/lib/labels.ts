@@ -1,4 +1,12 @@
-import type { ActivityKind, ClosedReason, Kind, PayUnit, Source, Status } from "../types";
+import type {
+  ActivityKind,
+  ApplicationChannel,
+  ClosedReason,
+  Kind,
+  PayUnit,
+  Source,
+  Status,
+} from "../types";
 
 // Human-readable labels. `Record<Status, string>` makes the compiler fail if a
 // status is added to the union but forgotten here.
@@ -18,6 +26,14 @@ export const CLOSED_REASON_LABELS: Record<ClosedReason, string> = {
   withdrew: "I withdrew",
   posting_closed: "Posting closed",
   mistake: "Created by mistake",
+  other: "Other",
+};
+
+export const APPLICATION_CHANNEL_LABELS: Record<ApplicationChannel, string> = {
+  email: "Email",
+  form: "Company form",
+  ats: "Hiring platform",
+  referral: "Referral",
   other: "Other",
 };
 

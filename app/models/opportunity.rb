@@ -13,15 +13,16 @@ class Opportunity < ApplicationRecord
   PROP_ATTRIBUTES = %w[
     id company role kind source status closed_reason pay_min pay_max pay_unit url
     contacted_on follow_up_on notes position archived_at external_id last_verified_on
+    resume_version contact_name application_channel
   ].freeze
 
   # Fields a user may set (web form and JSON API). `position` is owned by the board.
   EDITABLE_ATTRIBUTES = %i[
     company role kind source status closed_reason pay_min pay_max pay_unit url contacted_on follow_up_on notes
-    external_id last_verified_on
+    external_id last_verified_on resume_version contact_name application_channel
   ].freeze
   # Optional enums: an empty value means "not chosen".
-  NULLABLE_ENUMS = %w[kind source pay_unit closed_reason].freeze
+  NULLABLE_ENUMS = %w[kind source pay_unit closed_reason application_channel].freeze
 
   has_many :activities, dependent: :destroy
 
@@ -35,11 +36,21 @@ class Opportunity < ApplicationRecord
     rejected: "rejected", withdrew: "withdrew", posting_closed: "posting_closed",
     mistake: "mistake", other: "other"
   }, prefix: :closed_because, validate: { allow_nil: true }
+  # Where the application actually went: an email, the company's own form, a hiring platform (Ashby,
+  # Greenhouse, ...), or a referral.
+  enum :application_channel, {
+    email: "email", form: "form", ats: "ats", referral: "referral", other: "other"
+  }, prefix: :applied_via, validate: { allow_nil: true }
   enum :pay_unit, { hourly: "hourly", yearly: "yearly" }, validate: { allow_nil: true }
 
   # The job board's own id (or any stable key). Unique when present, so the same posting is never
   # tracked twice; many records may have none.
   before_validation { self.external_id = external_id.to_s.strip.presence }
+  # Free-text details: blank means "not recorded", never an empty string.
+  before_validation do
+    self.resume_version = resume_version.to_s.strip.presence
+    self.contact_name = contact_name.to_s.strip.presence
+  end
   validates :external_id, uniqueness: { message: "is already tracked" }, allow_nil: true
 
   validate :url_not_already_tracked, if: -> { url_changed? && url.present? }

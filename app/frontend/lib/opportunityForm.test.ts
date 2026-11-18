@@ -20,6 +20,9 @@ const OPPORTUNITY: Opportunity = {
   archived_at: null,
   external_id: null,
   last_verified_on: null,
+  resume_version: null,
+  contact_name: null,
+  application_channel: null,
 };
 
 describe("toFormData", () => {
@@ -39,6 +42,9 @@ describe("toFormData", () => {
       notes: "",
       external_id: "",
       last_verified_on: "",
+      resume_version: "",
+      contact_name: "",
+      application_channel: "",
     });
   });
 });

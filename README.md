@@ -72,6 +72,8 @@ GitHub Actions runs RuboCop, Brakeman, bundler-audit, RSpec, ESLint, Prettier, `
 
 **Duplicates.** `external_id` (the job board's own id) is unique when present, and a posting URL can only be tracked once, compared ignoring host case, a trailing slash and a `#fragment`. The model enforces both, so the web form, the JSON API and MCP all refuse a repeat. The MCP tools check first, so the assistant gets a message naming the existing record (and saying if it is archived) rather than a bare validation error. `last_verified_on` records when a posting was last confirmed live; `stale_postings` lists the ones that need re-checking.
 
+**Application details.** Optional fields record where an application went (`application_channel`: email, company form, hiring platform, referral, other), which resume was sent and who the contact is. The MCP server tells the assistant to use them, and the pay fields, rather than the free-text notes.
+
 **Rails enums.** Status, kind, source, pay unit and closed reason are string-backed enums with `validate: true`, so a bad value is a normal validation error rather than an exception.
 
 ## JSON API

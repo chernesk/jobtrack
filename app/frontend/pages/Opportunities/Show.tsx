@@ -8,7 +8,12 @@ import Layout from "../../components/Layout";
 import PayRange from "../../components/PayRange";
 import StatusBadge from "../../components/StatusBadge";
 import { formatDate } from "../../lib/dates";
-import { CLOSED_REASON_LABELS, KIND_LABELS, SOURCE_LABELS } from "../../lib/labels";
+import {
+  APPLICATION_CHANNEL_LABELS,
+  CLOSED_REASON_LABELS,
+  KIND_LABELS,
+  SOURCE_LABELS,
+} from "../../lib/labels";
 import type { OpportunityShowProps } from "../../types";
 
 // Only http(s) URLs become links. The value is user-entered text, and a
@@ -45,6 +50,14 @@ export default function Show({ opportunity, activities }: OpportunityShowProps) 
       label: "Follow up",
       value: opportunity.follow_up_on ? formatDate(opportunity.follow_up_on) : "—",
     },
+    {
+      label: "Applied via",
+      value: opportunity.application_channel
+        ? APPLICATION_CHANNEL_LABELS[opportunity.application_channel]
+        : "—",
+    },
+    { label: "Resume", value: opportunity.resume_version ?? "—" },
+    { label: "Contact", value: opportunity.contact_name ?? "—" },
     { label: "Posting ID", value: opportunity.external_id ?? "—" },
     {
       label: "Posting verified",

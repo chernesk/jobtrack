@@ -9,6 +9,7 @@ module JobTrackMcp
       SOURCES = Opportunity.sources.keys.freeze
       PAY_UNITS = Opportunity.pay_units.keys.freeze
       CLOSED_REASONS = Opportunity.closed_reasons.keys.freeze
+      APPLICATION_CHANNELS = Opportunity.application_channels.keys.freeze
       ACTIVITY_KINDS = Activity.kinds.keys.freeze
       DATE_NOTE = "ISO 8601 date, YYYY-MM-DD".freeze
 
@@ -29,6 +30,9 @@ module JobTrackMcp
         notes: { type: "string", description: "Free-form notes" },
         external_id: { type: "string", description: "The job board's id for the posting (e.g. 42472), or any stable key. " \
                                                        "Unique: used to catch duplicates" },
+        resume_version: { type: "string", description: "Which resume was sent (e.g. a file name or version label)" },
+        contact_name: { type: "string", description: "The person at the company to contact, a recruiter or hiring manager" },
+        application_channel: { type: "string", enum: APPLICATION_CHANNELS, description: "Where the application went: email, the company's form, a hiring platform (ats), or a referral" },
         last_verified_on: { type: "string", description: "Date the posting was last confirmed still live (#{DATE_NOTE})" }
       }.freeze
       DATE_FIELDS = %i[contacted_on follow_up_on last_verified_on].freeze

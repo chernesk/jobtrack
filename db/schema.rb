@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_17_150000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_17_180000) do
   create_table "activities", force: :cascade do |t|
     t.bigint "opportunity_id", null: false
     t.string "kind", null: false
@@ -54,6 +54,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_17_150000) do
     t.datetime "archived_at"
     t.string "external_id"
     t.date "last_verified_on"
+    t.string "resume_version"
+    t.string "contact_name"
+    t.string "application_channel"
     t.index ["archived_at"], name: "index_opportunities_on_archived_at"
     t.index ["due"], name: "index_opportunities_on_due"
     t.index ["external_id"], name: "index_opportunities_on_external_id", unique: true
