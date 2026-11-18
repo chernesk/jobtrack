@@ -15,6 +15,7 @@ import { useState } from "react";
 import { BoardCardPreview } from "../../components/BoardCard";
 import BoardColumn from "../../components/BoardColumn";
 import Layout from "../../components/Layout";
+import { useAutoRefresh } from "../../hooks/useAutoRefresh";
 import { boardCoordinates } from "../../lib/boardKeyboard";
 import { findStatus, groupByStatus, moveCard, type BoardColumns } from "../../lib/board";
 import { STATUS_LABELS } from "../../lib/labels";
@@ -34,6 +35,9 @@ export default function Show({ opportunities }: BoardShowProps) {
   const [activeCard, setActiveCard] = useState<Opportunity | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Fresh props would replace the columns, so hold off while a card is mid-drag or a move is saving.
+  useAutoRefresh({ paused: activeCard !== null || saving });
 
   // Rails sent fresh props (after a move succeeds or fails, or on any visit): they
   // are the truth, so adopt them. "Adjust state while rendering", not an effect.
