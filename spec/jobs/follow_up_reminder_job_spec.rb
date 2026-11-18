@@ -70,7 +70,10 @@ end
 RSpec.describe FollowUpReminderJob, "notifications", type: :job do
   let(:today) { Date.new(2026, 11, 15) }
 
-  before { allow(NtfyClient).to receive(:publish).and_return(true) }
+  before do
+    allow(NtfyClient).to receive(:configured?).and_return(true)
+    allow(NtfyClient).to receive(:publish).and_return(true)
+  end
 
   around do |example|
     saved = ENV.to_h.slice("APP_URL", "NTFY_HIDE_NAMES")
@@ -105,13 +108,41 @@ RSpec.describe FollowUpReminderJob, "notifications", type: :job do
     expect(NtfyClient).to have_received(:publish).with(hash_including(title: "1 follow-up due", priority: 3))
   end
 
-  it "sends nothing when nothing is due" do
+  it "sends a quiet receipt when nothing is due, so silence never means 'did not run'" do
     create(:opportunity, status: "contacted", follow_up_on: today + 2)
     create(:opportunity, status: "closed", follow_up_on: today - 2)
 
     described_class.perform_now(today)
 
+    expect(NtfyClient).to have_received(:publish).once.with(
+      title: "No follow-ups due",
+      message: "Nothing due today. The daily check ran.",
+      click: nil,
+      tags: "white_check_mark",
+      priority: 2
+    )
+  end
+
+  it "does not try to send, and says so in the log, when notifications are not configured" do
+    allow(NtfyClient).to receive(:configured?).and_return(false)
+    allow(Rails.logger).to receive(:info)
+
+    described_class.perform_now(today)
+
     expect(NtfyClient).not_to have_received(:publish)
+    expect(Rails.logger).to have_received(:info).with(/notifications off/)
+  end
+
+  it "logs whether the notification was sent or failed" do
+    create(:opportunity, status: "contacted", follow_up_on: today)
+    allow(Rails.logger).to receive(:info)
+
+    described_class.perform_now(today)
+    expect(Rails.logger).to have_received(:info).with("FollowUpReminderJob: 1 due, notification sent")
+
+    allow(NtfyClient).to receive(:publish).and_return(false)
+    described_class.perform_now(today)
+    expect(Rails.logger).to have_received(:info).with("FollowUpReminderJob: 1 due, notification failed")
   end
 
   it "caps the list and says how many more there are" do

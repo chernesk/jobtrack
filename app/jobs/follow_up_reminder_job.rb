@@ -4,8 +4,9 @@
 # it turns the flag on for newly due records and off for any that no longer qualify.
 #
 # It then sends one push notification (see NtfyClient) listing everything due, overdue
-# included, so a follow-up does not depend on remembering to open the app. Nothing is
-# sent on a day with nothing due, and a failed send never fails the job.
+# included, so a follow-up does not depend on remembering to open the app. On a day with
+# nothing due it sends a quiet "nothing today" instead, so silence never has to be read
+# as "it didn't run". A failed send never fails the job, and what happened is logged.
 class FollowUpReminderJob < ApplicationJob
   queue_as :default
 
@@ -26,15 +27,34 @@ class FollowUpReminderJob < ApplicationJob
   MAX_LISTED = 8
 
   def notify(today)
-    due = Opportunity.follow_up_due(today).to_a
-    return if due.empty?
+    unless NtfyClient.configured?
+      Rails.logger.info("FollowUpReminderJob: notifications off (NTFY_TOPIC not set)")
+      return
+    end
 
+    due = Opportunity.follow_up_due(today).to_a
+    sent = due.empty? ? publish_nothing_due : publish_due(due, today)
+    Rails.logger.info("FollowUpReminderJob: #{due.size} due, notification #{sent ? 'sent' : 'failed'}")
+  end
+
+  def publish_due(due, today)
     NtfyClient.publish(
       title: "#{due.size} #{'follow-up'.pluralize(due.size)} due",
       message: message_for(due, today),
       click: ENV["APP_URL"],
       tags: "bell",
       priority: due.any? { |opportunity| opportunity.follow_up_on < today } ? 4 : 3
+    )
+  end
+
+  # Low priority: it is a "the check ran" receipt, not something to act on.
+  def publish_nothing_due
+    NtfyClient.publish(
+      title: "No follow-ups due",
+      message: "Nothing due today. The daily check ran.",
+      click: ENV["APP_URL"],
+      tags: "white_check_mark",
+      priority: 2
     )
   end
 
