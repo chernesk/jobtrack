@@ -25,6 +25,12 @@ RSpec.describe NtfyClient do
     saved.each { |key, value| ENV[key] = value }
   end
 
+  it "is configured by a topic saved in settings alone" do
+    Setting.current.update!(ntfy_topic: "saved-topic")
+
+    expect(described_class.configured?).to be(true)
+  end
+
   it "does nothing when no topic is configured" do
     expect(described_class.configured?).to be(false)
     expect(described_class.publish(title: "Hi", message: "There")).to be(false)
@@ -63,6 +69,18 @@ RSpec.describe NtfyClient do
       expect([ call[:host], call[:port], call[:ssl] ]).to eq([ "nas.local", 8080, false ])
       expect(call[:request].path).to eq("/my-private-topic")
       expect(call[:request]["Authorization"]).to eq("Bearer tk_secret")
+    end
+
+    it "uses the topic, server and token saved in settings, ahead of the environment" do
+      ENV["NTFY_URL"] = "http://env.local"
+      Setting.current.update!(ntfy_topic: "saved-topic", ntfy_url: "http://saved.local:9000", ntfy_token: "tk_saved")
+
+      described_class.publish(title: "T", message: "M")
+
+      call = sent.first
+      expect([ call[:host], call[:port] ]).to eq([ "saved.local", 9000 ])
+      expect(call[:request].path).to eq("/saved-topic")
+      expect(call[:request]["Authorization"]).to eq("Bearer tk_saved")
     end
 
     it "returns false instead of raising on an error response" do

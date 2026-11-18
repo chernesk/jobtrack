@@ -23,6 +23,10 @@ Rails.application.routes.draw do
     resources :activities, only: :create
   end
 
+  resource :settings, only: %i[show update] do
+    post :test
+  end
+
   # MCP server for AI assistants; authenticated with the same API tokens as /api/v1.
   mount JobTrackMcp::Endpoint.new => "/mcp"
 

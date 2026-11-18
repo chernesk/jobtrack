@@ -15,7 +15,8 @@ services:
       FORCE_SSL: "false"
       # Runs the Solid Queue worker (the daily follow-up job) inside the web process.
       SOLID_QUEUE_IN_PUMA: "true"
-      # Optional push notification for due follow-ups (see the README). Off until a topic is set.
+      # Optional. Notifications are normally set up on the Settings page; these variables are
+      # the fallback for any field left blank there (see the README).
       # NTFY_TOPIC: "a-long-hard-to-guess-name"
       # APP_URL: "http://nas.local:3200"
     volumes:

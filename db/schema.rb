@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_17_180000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_18_120000) do
   create_table "activities", force: :cascade do |t|
     t.bigint "opportunity_id", null: false
     t.string "kind", null: false
@@ -71,6 +71,20 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_17_180000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["user_id"], name: "index_sessions_on_user_id"
+  end
+
+  create_table "settings", force: :cascade do |t|
+    t.boolean "auto_refresh_enabled", default: true, null: false
+    t.integer "auto_refresh_seconds", default: 15, null: false
+    t.boolean "notifications_enabled", default: true, null: false
+    t.boolean "notify_when_nothing_due", default: true, null: false
+    t.boolean "hide_names", default: false, null: false
+    t.string "ntfy_url"
+    t.string "ntfy_topic"
+    t.string "ntfy_token"
+    t.string "app_url"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
   end
 
   create_table "users", force: :cascade do |t|
