@@ -155,7 +155,7 @@ To build from a checkout instead of pulling: `docker compose -f compose.yaml -f 
 
 **TrueNAS (24.10 or later).** In Apps, choose Discover Apps, then Custom App, then Install via YAML, and paste `compose.yaml` as it is (change the port if 3200 is taken). There is nothing to configure. Open a shell on the app (Apps, the app's workloads, Shell) to run the `users:create` command above. To keep the data in a dataset you control, replace the named volume with a host path such as `/mnt/<pool>/apps/jobtrack:/rails/storage`, and give it to the container's user first: `chown 1000:1000 /mnt/<pool>/apps/jobtrack`. The package is private by default; either make it public in the repository's package settings (simplest) or give the host a `ghcr.io` login with a GitHub token that has `read:packages`.
 
-**Follow-up notifications (optional).** The 7am job that flags due follow-ups can also push one notification to your phone through [ntfy](https://ntfy.sh), listing everything due, overdue included ("Acme, Engineer (3 days overdue)"). Nothing is sent on a day with nothing due, and a failed send never fails the job. It is off until you set a topic:
+**Follow-up notifications (optional).** The 7am job that flags due follow-ups can also push one notification to your phone through [ntfy](https://ntfy.sh), listing everything due, overdue included ("Acme, Engineer (3 days overdue)"). On a day with nothing due it sends a quiet "No follow-ups due" message instead, so you know the check ran. A failed send never fails the job, and the job logs one line saying what it did. It is off until you set a topic:
 
 | Variable | Meaning |
 | --- | --- |
