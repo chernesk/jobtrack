@@ -2,9 +2,12 @@ import FollowUpsDue from "../../components/FollowUpsDue";
 import Layout from "../../components/Layout";
 import RecentActivity from "../../components/RecentActivity";
 import StatusCounts from "../../components/StatusCounts";
+import { useAutoRefresh } from "../../hooks/useAutoRefresh";
 import type { HomeIndexProps } from "../../types";
 
 export default function Index({ today, counts, follow_ups_due, recent_activity }: HomeIndexProps) {
+  useAutoRefresh();
+
   return (
     <Layout>
       <h1 className="text-2xl font-semibold">Dashboard</h1>

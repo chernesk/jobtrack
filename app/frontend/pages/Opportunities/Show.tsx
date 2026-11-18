@@ -5,6 +5,7 @@ import Button from "../../components/Button";
 import ActivityForm from "../../components/ActivityForm";
 import ActivityTimeline from "../../components/ActivityTimeline";
 import Layout from "../../components/Layout";
+import { useAutoRefresh } from "../../hooks/useAutoRefresh";
 import PayRange from "../../components/PayRange";
 import StatusBadge from "../../components/StatusBadge";
 import { formatDate } from "../../lib/dates";
@@ -23,6 +24,8 @@ function isWebUrl(value: string): boolean {
 }
 
 export default function Show({ opportunity, activities }: OpportunityShowProps) {
+  useAutoRefresh();
+
   const facts: { label: string; value: ReactNode }[] = [
     ...(opportunity.status === "closed"
       ? [

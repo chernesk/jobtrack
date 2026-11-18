@@ -4,6 +4,7 @@ import EmptyState from "../../components/EmptyState";
 import Layout from "../../components/Layout";
 import OpportunityFilters from "../../components/OpportunityFilters";
 import OpportunityTable from "../../components/OpportunityTable";
+import { useAutoRefresh } from "../../hooks/useAutoRefresh";
 import { DEFAULT_QUERY, hasActiveFilters, toParams } from "../../lib/opportunityQuery";
 import type { OpportunitiesIndexProps, OpportunityQuery } from "../../types";
 
@@ -15,6 +16,8 @@ function visit(query: OpportunityQuery) {
 }
 
 export default function Index({ opportunities, filters }: OpportunitiesIndexProps) {
+  useAutoRefresh();
+
   return (
     <Layout>
       <div className="flex items-center justify-between">
