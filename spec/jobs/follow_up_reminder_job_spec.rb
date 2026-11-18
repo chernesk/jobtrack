@@ -67,6 +67,94 @@ RSpec.describe FollowUpReminderJob, type: :job do
   end
 end
 
+RSpec.describe FollowUpReminderJob, "notifications", type: :job do
+  let(:today) { Date.new(2026, 11, 15) }
+
+  before { allow(NtfyClient).to receive(:publish).and_return(true) }
+
+  around do |example|
+    saved = ENV.to_h.slice("APP_URL", "NTFY_HIDE_NAMES")
+    ENV.delete("APP_URL")
+    ENV.delete("NTFY_HIDE_NAMES")
+    example.run
+    ENV.delete("APP_URL")
+    ENV.delete("NTFY_HIDE_NAMES")
+    saved.each { |key, value| ENV[key] = value }
+  end
+
+  it "sends one notification listing what is due, overdue first, with a high priority when something is overdue" do
+    create(:opportunity, company: "Globex", role: "Dev", status: "contacted", follow_up_on: today)
+    create(:opportunity, company: "Acme", role: "Engineer", status: "applied", follow_up_on: today - 3)
+
+    described_class.perform_now(today)
+
+    expect(NtfyClient).to have_received(:publish).once.with(
+      title: "2 follow-ups due",
+      message: "Acme, Engineer (3 days overdue)\nGlobex, Dev (due today)",
+      click: nil,
+      tags: "bell",
+      priority: 4
+    )
+  end
+
+  it "uses the normal priority and singular wording when one thing is due today" do
+    create(:opportunity, company: "Globex", role: "Dev", status: "contacted", follow_up_on: today)
+
+    described_class.perform_now(today)
+
+    expect(NtfyClient).to have_received(:publish).with(hash_including(title: "1 follow-up due", priority: 3))
+  end
+
+  it "sends nothing when nothing is due" do
+    create(:opportunity, status: "contacted", follow_up_on: today + 2)
+    create(:opportunity, status: "closed", follow_up_on: today - 2)
+
+    described_class.perform_now(today)
+
+    expect(NtfyClient).not_to have_received(:publish)
+  end
+
+  it "caps the list and says how many more there are" do
+    10.times { |n| create(:opportunity, company: "Co #{n}", status: "contacted", follow_up_on: today - n - 1) }
+
+    described_class.perform_now(today)
+
+    expect(NtfyClient).to have_received(:publish).with(hash_including(title: "10 follow-ups due")) do |args|
+      expect(args[:message].lines.size).to eq(9)
+      expect(args[:message]).to end_with("and 2 more")
+    end
+  end
+
+  it "sends no names when NTFY_HIDE_NAMES is set" do
+    ENV["NTFY_HIDE_NAMES"] = "1"
+    create(:opportunity, company: "Secret Corp", status: "contacted", follow_up_on: today)
+
+    described_class.perform_now(today)
+
+    expect(NtfyClient).to have_received(:publish) do |args|
+      expect(args[:message]).not_to include("Secret Corp")
+    end
+  end
+
+  it "links to the app when APP_URL is set" do
+    ENV["APP_URL"] = "http://nas.local:3200"
+    create(:opportunity, status: "contacted", follow_up_on: today)
+
+    described_class.perform_now(today)
+
+    expect(NtfyClient).to have_received(:publish).with(hash_including(click: "http://nas.local:3200"))
+  end
+
+  it "still updates the flags when sending fails" do
+    allow(NtfyClient).to receive(:publish).and_return(false)
+    record = create(:opportunity, status: "contacted", follow_up_on: today - 1)
+    record.update_columns(due: false)
+
+    expect(described_class.perform_now(today)).to eq(marked: 1, cleared: 0)
+    expect(record.reload.due).to be(true)
+  end
+end
+
 RSpec.describe "Follow-up reminder schedule" do
   let(:entry) { YAML.load_file(Rails.root.join("config/recurring.yml")).dig("production", "follow_up_reminder") }
 

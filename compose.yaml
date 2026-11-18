@@ -15,6 +15,9 @@ services:
       FORCE_SSL: "false"
       # Runs the Solid Queue worker (the daily follow-up job) inside the web process.
       SOLID_QUEUE_IN_PUMA: "true"
+      # Optional push notification for due follow-ups (see the README). Off until a topic is set.
+      # NTFY_TOPIC: "a-long-hard-to-guess-name"
+      # APP_URL: "http://nas.local:3200"
     volumes:
       # The SQLite databases. The image runs as uid/gid 1000, so a host path must be owned by 1000:1000.
       - jobtrack_storage:/rails/storage
