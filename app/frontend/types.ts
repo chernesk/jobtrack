@@ -85,7 +85,50 @@ export interface CurrentUser {
 export type SharedProps = {
   auth: { user: CurrentUser | null };
   flash: { notice?: string; alert?: string };
+  // From the Settings page; `useAutoRefresh` reads it.
+  auto_refresh: { enabled: boolean; seconds: number };
 };
+
+// Mirrors Setting#as_props. The ntfy token never reaches the browser; only whether one is saved.
+export interface Settings {
+  auto_refresh_enabled: boolean;
+  auto_refresh_seconds: number;
+  notifications_enabled: boolean;
+  notify_when_nothing_due: boolean;
+  hide_names: boolean;
+  ntfy_url: string | null;
+  ntfy_topic: string | null;
+  app_url: string | null;
+  ntfy_token_saved: boolean;
+  // Which values the server environment supplies when the field is left blank.
+  from_environment: {
+    ntfy_url: boolean;
+    ntfy_topic: boolean;
+    ntfy_token: boolean;
+    app_url: boolean;
+    hide_names: boolean;
+  };
+}
+
+export interface SettingsEditProps {
+  settings: Settings;
+}
+
+// What the form sends. A blank `ntfy_token` means "keep the saved one".
+export interface SettingsFormData {
+  auto_refresh_enabled: boolean;
+  auto_refresh_seconds: number;
+  notifications_enabled: boolean;
+  notify_when_nothing_due: boolean;
+  hide_names: boolean;
+  ntfy_url: string;
+  ntfy_topic: string;
+  ntfy_token: string;
+  clear_ntfy_token: boolean;
+  app_url: string;
+}
+
+export const REFRESH_CHOICES = [10, 15, 30, 60, 120] as const;
 
 export type SortDirection = "asc" | "desc";
 

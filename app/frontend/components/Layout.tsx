@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { href: "/", label: "Dashboard" },
   { href: "/opportunities", label: "Opportunities" },
   { href: "/board", label: "Board" },
+  { href: "/settings", label: "Settings" },
 ] as const;
 
 function isActive(currentPath: string, href: string): boolean {

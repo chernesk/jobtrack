@@ -23,6 +23,7 @@ function renderLayout(overrides: Partial<{ url: string; props: Partial<SharedPro
     props: {
       auth: { user: { email_address: "demo@example.com" } },
       flash: {},
+      auto_refresh: { enabled: true, seconds: 15 },
       ...overrides.props,
     },
   };

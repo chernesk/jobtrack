@@ -5,5 +5,6 @@ class ApplicationController < ActionController::Base
 
   # Props available to every Inertia page (typed as SharedProps in app/frontend/types.ts).
   inertia_share auth: -> { { user: Current.user && { email_address: Current.user.email_address } } },
-    flash: -> { flash.to_hash.slice("notice", "alert") }
+    flash: -> { flash.to_hash.slice("notice", "alert") },
+    auto_refresh: -> { Setting.current.refresh_props }
 end

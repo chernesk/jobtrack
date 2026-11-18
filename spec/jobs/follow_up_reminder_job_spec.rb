@@ -186,6 +186,57 @@ RSpec.describe FollowUpReminderJob, "notifications", type: :job do
   end
 end
 
+RSpec.describe FollowUpReminderJob, "settings", type: :job do
+  let(:today) { Date.new(2026, 11, 15) }
+
+  before do
+    allow(NtfyClient).to receive(:configured?).and_return(true)
+    allow(NtfyClient).to receive(:publish).and_return(true)
+  end
+
+  it "sends nothing, and logs why, when notifications are switched off in settings" do
+    Setting.current.update!(notifications_enabled: false)
+    create(:opportunity, status: "contacted", follow_up_on: today)
+    allow(Rails.logger).to receive(:info)
+
+    described_class.perform_now(today)
+
+    expect(NtfyClient).not_to have_received(:publish)
+    expect(Rails.logger).to have_received(:info).with(/switched off in settings/)
+  end
+
+  it "skips the empty-day receipt when that is switched off, but still sends real follow-ups" do
+    Setting.current.update!(notify_when_nothing_due: false)
+    allow(Rails.logger).to receive(:info)
+
+    described_class.perform_now(today)
+    expect(NtfyClient).not_to have_received(:publish)
+    expect(Rails.logger).to have_received(:info).with(/nothing-due message is off/)
+
+    create(:opportunity, status: "contacted", follow_up_on: today)
+    described_class.perform_now(today)
+    expect(NtfyClient).to have_received(:publish).once
+  end
+
+  it "sends no names when hide names is set in settings" do
+    Setting.current.update!(hide_names: true)
+    create(:opportunity, company: "Secret Corp", status: "contacted", follow_up_on: today)
+
+    described_class.perform_now(today)
+
+    expect(NtfyClient).to have_received(:publish) { |args| expect(args[:message]).not_to include("Secret Corp") }
+  end
+
+  it "links to the app address saved in settings" do
+    Setting.current.update!(app_url: "http://nas.local:3200")
+    create(:opportunity, status: "contacted", follow_up_on: today)
+
+    described_class.perform_now(today)
+
+    expect(NtfyClient).to have_received(:publish).with(hash_including(click: "http://nas.local:3200"))
+  end
+end
+
 RSpec.describe "Follow-up reminder schedule" do
   let(:entry) { YAML.load_file(Rails.root.join("config/recurring.yml")).dig("production", "follow_up_reminder") }
 

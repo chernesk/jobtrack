@@ -64,7 +64,7 @@ GitHub Actions runs RuboCop, Brakeman, bundler-audit, RSpec, ESLint, Prettier, `
 
 **Forms.** One `OpportunityForm` serves new and edit with Inertia's `useForm`. Required fields are checked in the browser for instant feedback, and Rails' validation errors come back per field and render next to the right input through a small accessible `Field` component. The server is the authority.
 
-**Open pages refresh themselves.** Changes made through the MCP server or another tab reach the database but not a page that is already open, because Inertia pages only show the props they loaded. The dashboard, list, detail and board pages therefore re-fetch their props every 15 seconds (`useAutoRefresh`), and only while the tab is visible; coming back to a tab refreshes it at once. It is polling, not websockets: one user, one small query set, no extra infrastructure. The board pauses while a card is being dragged or saved so fresh props never replace its columns mid-move, a poll never cancels a navigation or wipes a flash message, and a failed poll is ignored rather than raising an error modal. The form pages do not poll.
+**Open pages refresh themselves.** Changes made through the MCP server or another tab reach the database but not a page that is already open, because Inertia pages only show the props they loaded. The dashboard, list, detail and board pages therefore re-fetch their props every 15 seconds by default (`useAutoRefresh`; the interval, or switching it off, is a setting), and only while the tab is visible; coming back to a tab refreshes it at once. It is polling, not websockets: one user, one small query set, no extra infrastructure. The board pauses while a card is being dragged or saved so fresh props never replace its columns mid-move, a poll never cancels a navigation or wipes a flash message, and a failed poll is ignored rather than raising an error modal. The form pages do not poll.
 
 **A recurring job for time-based state.** An opportunity becomes "due" when its follow-up date arrives, which is not an edit, so nothing in a request would notice. A stored `due` flag keeps the dashboard to one indexed query. A `before_save` callback keeps it right when you edit a record, and `FollowUpReminderJob` (Solid Queue, declared in `config/recurring.yml`, 7am Eastern) rolls it over each morning, turning it on for newly due records and off for any that no longer qualify. The rule lives in one scope, `Opportunity.follow_up_due`, and specs check the callback and the job agree with it. Solid Queue is database-backed, so there is no Redis. In development nothing runs the scheduler; run `bin/rails runner FollowUpReminderJob.perform_now` to refresh the flags by hand.
 
@@ -155,17 +155,22 @@ To build from a checkout instead of pulling: `docker compose -f compose.yaml -f 
 
 **TrueNAS (24.10 or later).** In Apps, choose Discover Apps, then Custom App, then Install via YAML, and paste `compose.yaml` as it is (change the port if 3200 is taken). There is nothing to configure. Open a shell on the app (Apps, the app's workloads, Shell) to run the `users:create` command above. To keep the data in a dataset you control, replace the named volume with a host path such as `/mnt/<pool>/apps/jobtrack:/rails/storage`, and give it to the container's user first: `chown 1000:1000 /mnt/<pool>/apps/jobtrack`. The package is private by default; either make it public in the repository's package settings (simplest) or give the host a `ghcr.io` login with a GitHub token that has `read:packages`.
 
-**Follow-up notifications (optional).** The 7am job that flags due follow-ups can also push one notification to your phone through [ntfy](https://ntfy.sh), listing everything due, overdue included ("Acme, Engineer (3 days overdue)"). On a day with nothing due it sends a quiet "No follow-ups due" message instead, so you know the check ran. A failed send never fails the job, and the job logs one line saying what it did. It is off until you set a topic:
+**Settings and follow-up notifications.** The Settings page (in the nav) holds the options that used to need a config change:
 
-| Variable | Meaning |
+- **Live updates:** turn the automatic page refresh on or off and choose how often (10 to 120 seconds).
+- **Notifications:** the 7am job that flags due follow-ups can also push one message to your phone through [ntfy](https://ntfy.sh), listing everything due, overdue included ("Acme, Engineer (3 days overdue)"). You can switch it off, switch off the quiet "No follow-ups due" message sent on empty days, or leave company names out of the message. A failed send never fails the job, and the job logs one line saying what it did.
+
+Notifications need a topic before they send anything. Use a long, hard-to-guess name: on ntfy.sh anyone who knows a topic can read it. **Send a test notification** on the page checks the setup without waiting for 7am. The ntfy access token is stored encrypted (the key is derived from the app's signing secret, so there is nothing extra to back up; if that secret is lost you enter the token again) and is never sent back to the browser.
+
+The same values can come from environment variables, which is how it was configured before the page existed. A field left blank on the page falls back to its variable, and the page says when it is doing that:
+
+| Setting | Variable |
 | --- | --- |
-| `NTFY_TOPIC` | Required to turn it on. Use a long, hard-to-guess name: on ntfy.sh anyone who knows a topic can read it. |
-| `NTFY_URL` | Your ntfy server. Defaults to `https://ntfy.sh`; set it for a self-hosted one. |
-| `NTFY_TOKEN` | Optional access token for a protected topic. |
-| `APP_URL` | Optional. Tapping the notification opens this address (for example `http://nas.local:3200`). |
-| `NTFY_HIDE_NAMES` | Optional. Any value sends only "N follow-ups due" with no company names, for a public topic. |
-
-Add them under `environment:` in `compose.yaml`. To try it without waiting for 7am: `docker compose exec jobtrack bin/rails runner FollowUpReminderJob.perform_now`.
+| Topic | `NTFY_TOPIC` |
+| ntfy server (default `https://ntfy.sh`) | `NTFY_URL` |
+| Access token | `NTFY_TOKEN` |
+| JobTrack address (tapping the message opens it) | `APP_URL` |
+| Leave names out | `NTFY_HIDE_NAMES` (any value) |
 
 Notes:
 
