@@ -155,6 +155,18 @@ To build from a checkout instead of pulling: `docker compose -f compose.yaml -f 
 
 **TrueNAS (24.10 or later).** In Apps, choose Discover Apps, then Custom App, then Install via YAML, and paste `compose.yaml` as it is (change the port if 3200 is taken). There is nothing to configure. Open a shell on the app (Apps, the app's workloads, Shell) to run the `users:create` command above. To keep the data in a dataset you control, replace the named volume with a host path such as `/mnt/<pool>/apps/jobtrack:/rails/storage`, and give it to the container's user first: `chown 1000:1000 /mnt/<pool>/apps/jobtrack`. The package is private by default; either make it public in the repository's package settings (simplest) or give the host a `ghcr.io` login with a GitHub token that has `read:packages`.
 
+**Follow-up notifications (optional).** The 7am job that flags due follow-ups can also push one notification to your phone through [ntfy](https://ntfy.sh), listing everything due, overdue included ("Acme, Engineer (3 days overdue)"). Nothing is sent on a day with nothing due, and a failed send never fails the job. It is off until you set a topic:
+
+| Variable | Meaning |
+| --- | --- |
+| `NTFY_TOPIC` | Required to turn it on. Use a long, hard-to-guess name: on ntfy.sh anyone who knows a topic can read it. |
+| `NTFY_URL` | Your ntfy server. Defaults to `https://ntfy.sh`; set it for a self-hosted one. |
+| `NTFY_TOKEN` | Optional access token for a protected topic. |
+| `APP_URL` | Optional. Tapping the notification opens this address (for example `http://nas.local:3200`). |
+| `NTFY_HIDE_NAMES` | Optional. Any value sends only "N follow-ups due" with no company names, for a public topic. |
+
+Add them under `environment:` in `compose.yaml`. To try it without waiting for 7am: `docker compose exec jobtrack bin/rails runner FollowUpReminderJob.perform_now`.
+
 Notes:
 
 - The container serves plain HTTP (`FORCE_SSL=false`), so keep it on your home network. To reach it from outside, put a reverse proxy that terminates HTTPS in front and remove that setting.
