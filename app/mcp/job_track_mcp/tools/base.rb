@@ -13,6 +13,13 @@ module JobTrackMcp
       ACTIVITY_KINDS = Activity.kinds.keys.freeze
       DATE_NOTE = "ISO 8601 date, YYYY-MM-DD".freeze
 
+      # Only create and bulk create take this: the model reads it, not the record.
+      ALLOW_DUPLICATE = {
+        type: "boolean",
+        description: "Set true only to add a role that looks like one already tracked (same company and role) " \
+                     "but is a genuinely separate opening"
+      }.freeze
+
       # Properties shared by create and update (the fields a person can edit).
       OPPORTUNITY_PROPERTIES = {
         company: { type: "string", description: "Company name" },
@@ -68,11 +75,12 @@ module JobTrackMcp
           nil
         end
 
-        # Creates one opportunity, or says why not. Returns [:created | :duplicate | :invalid | :error, value]
+        # Creates one opportunity, or says why not. Returns [:created | :duplicate | :similar | :invalid | :error, value]
         # where value is the record (or the problem text for :error). Used by create and bulk create so both
         # treat duplicates the same way: a repeated external_id or posting URL is reported, never re-added.
         def create_or_report(attributes)
           attributes = clean(attributes.to_h.symbolize_keys)
+          allow_duplicate = attributes.delete(:allow_duplicate) == true
           if (problem = check_dates(attributes))
             return [ :error, problem ]
           end
@@ -80,6 +88,11 @@ module JobTrackMcp
           editable = attributes.slice(*Opportunity::EDITABLE_ATTRIBUTES)
           existing = Opportunity.find_duplicate(external_id: editable[:external_id], url: editable[:url])
           return [ :duplicate, existing ] if existing
+
+          unless allow_duplicate
+            same_role = Opportunity.find_same_role(company: editable[:company], role: editable[:role])
+            return [ :similar, same_role ] if same_role
+          end
 
           opportunity = Opportunity.new(editable)
           [ opportunity.save ? :created : :invalid, opportunity ]
@@ -92,6 +105,22 @@ module JobTrackMcp
           "Already tracked as id #{existing.id} (#{existing.company}, #{existing.role}, status #{existing.status}" \
             "#{", archived" if existing.archived?}). Use update_opportunity to change it" \
             "#{" (archive_opportunity with archived false restores it)" if existing.archived?}."
+        end
+
+        # Same company and role, but no shared posting id or URL: it may be a repeat, or a second opening.
+        def similar_summary(existing)
+          "Looks like the same role as id #{existing.id} (#{existing.company}, #{existing.role}, status #{existing.status}" \
+            "#{", archived" if existing.archived?}). Use update_opportunity if it is the same one. If it is genuinely " \
+            "a separate opening, repeat the call with allow_duplicate: true."
+        end
+
+        # Added anyway, but the person should know the company is already in the tracker under another role.
+        def company_warning(opportunity)
+          others = Opportunity.at_company(opportunity.company, excluding: opportunity.id)
+          return if others.empty?
+
+          listed = others.first(3).map { |o| "id #{o.id} (#{o.role}, #{o.status}#{", archived" if o.archived?})" }.to_sentence
+          "#{opportunity.company} already has #{others.size} other #{"opportunity".pluralize(others.size)}: #{listed}#{" and more" if others.size > 3}."
         end
 
         # Optional enums arrive as "" when the model means "unset".

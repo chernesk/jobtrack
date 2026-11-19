@@ -443,4 +443,111 @@ RSpec.describe "MCP endpoint", type: :request do
       expect(instructions).to include("pay_min", "application_channel")
     end
   end
+
+  describe "similar roles" do
+    it "refuses the same company and role even without a posting id or URL, and says which one" do
+      existing = create(:opportunity, company: "Acme, Inc.", role: "Sr. Rails Engineer", status: "applied")
+
+      message, error = call_tool("create_opportunity", { company: "acme", role: "Senior Rails Engineer" })
+
+      expect(error).to be(true)
+      expect(message).to include("same role as id #{existing.id}", "allow_duplicate")
+      expect(Opportunity.count).to eq(1)
+    end
+
+    it "adds it when allow_duplicate is true" do
+      create(:opportunity, company: "Acme", role: "Engineer")
+
+      payload, error = call_tool("create_opportunity", { company: "Acme", role: "Engineer", allow_duplicate: true })
+
+      expect(error).to be(false)
+      expect(payload).to include("company" => "Acme")
+      expect(Opportunity.count).to eq(2)
+    end
+
+    it "mentions an archived match so it can be restored instead" do
+      create(:opportunity, company: "Acme", role: "Engineer").archive!
+
+      message, error = call_tool("create_opportunity", { company: "Acme", role: "Engineer" })
+
+      expect(error).to be(true)
+      expect(message).to include("archived")
+    end
+
+    it "adds a different role at a known company, with a warning that names the others" do
+      other = create(:opportunity, company: "Acme", role: "Engineer", status: "contacted")
+
+      payload, error = call_tool("create_opportunity", { company: "Acme", role: "Staff Engineer" })
+
+      expect(error).to be(false)
+      expect(payload["warning"]).to include("Acme already has 1 other opportunity", "id #{other.id}", "Engineer, contacted")
+    end
+
+    it "gives no warning for a company that is new" do
+      payload, = call_tool("create_opportunity", { company: "Brand New Co", role: "Engineer" })
+
+      expect(payload).not_to have_key("warning")
+    end
+
+    it "treats a similar role in a bulk call as a skipped duplicate unless the item allows it" do
+      existing = create(:opportunity, company: "Acme", role: "Engineer")
+
+      payload, error = call_tool("bulk_create_opportunities", { opportunities: [
+        { company: "Acme", role: "Engineer" },
+        { company: "Acme", role: "Engineer", allow_duplicate: true },
+        { company: "Acme", role: "Designer" }
+      ] })
+
+      expect(error).to be(false)
+      results = payload["results"]
+      expect(results[0]).to include("result" => "duplicate", "id" => existing.id)
+      expect(results[1]).to include("result" => "created")
+      expect(results[2]).to include("result" => "created")
+      expect(results[2]["warning"]).to include("Acme already has")
+      expect(payload).to include("created" => 2, "duplicates" => 1)
+    end
+  end
+
+  describe "log_activity follow-up snooze" do
+    let!(:opportunity) { create(:opportunity, status: "contacted", follow_up_on: Date.current) }
+
+    it "moves the follow-up date forward in the same call and says what it is now" do
+      payload, error = call_tool("log_activity", { opportunity_id: opportunity.id, kind: "email", body: "Nudged", follow_up_in_days: 7 })
+
+      expect(error).to be(false)
+      expect(payload["follow_up_on"]).to eq((Date.current + 7).iso8601)
+      expect(opportunity.reload.follow_up_on).to eq(Date.current + 7)
+      expect(opportunity.activities.count).to eq(1)
+    end
+
+    it "leaves the follow-up date alone when not asked" do
+      payload, = call_tool("log_activity", { opportunity_id: opportunity.id, kind: "note", body: "Thinking" })
+
+      expect(payload).not_to have_key("follow_up_on")
+      expect(opportunity.reload.follow_up_on).to eq(Date.current)
+    end
+
+    it "rejects a silly number of days before saving anything" do
+      _result, error = call_tool("log_activity", { opportunity_id: opportunity.id, kind: "note", body: "x", follow_up_in_days: 0 })
+
+      expect(error).to be(true)
+      expect(opportunity.activities.count).to eq(0)
+      expect(opportunity.reload.follow_up_on).to eq(Date.current)
+    end
+
+    it "saves neither the note nor the date when the note is invalid" do
+      message, error = call_tool("log_activity", { opportunity_id: opportunity.id, kind: "note", body: "", follow_up_in_days: 7 })
+
+      expect(error).to be(true)
+      expect(message).to include("Not saved")
+      expect(opportunity.activities.count).to eq(0)
+      expect(opportunity.reload.follow_up_on).to eq(Date.current)
+    end
+
+    it "is mentioned in the server instructions" do
+      instructions = rpc("initialize", { protocolVersion: "2025-03-26", capabilities: {}, clientInfo: { name: "t", version: "1" } }).dig("result", "instructions")
+
+      expect(instructions).to include("follow_up_in_days", "allow_duplicate")
+    end
+  end
 end

@@ -72,7 +72,7 @@ GitHub Actions runs RuboCop, Brakeman, bundler-audit, RSpec, ESLint, Prettier, `
 
 **Pipeline stages.** Eight statuses run left to right: recommended (a good match not yet acted on), not contacted, contacted, applied (sent, no reply yet), talking, interviewing, offer, closed. A closed opportunity can carry a reason (rejected, withdrew, posting closed, created by mistake, other), which is cleared if it is reopened. Archiving hides a record everywhere without deleting it.
 
-**Duplicates.** `external_id` (the job board's own id) is unique when present, and a posting URL can only be tracked once, compared ignoring host case, a trailing slash and a `#fragment`. The model enforces both, so the web form, the JSON API and MCP all refuse a repeat. The MCP tools check first, so the assistant gets a message naming the existing record (and saying if it is archived) rather than a bare validation error. `last_verified_on` records when a posting was last confirmed live; `stale_postings` lists the ones that need re-checking.
+**Duplicates.** `external_id` (the job board's own id) is unique when present, and a posting URL can only be tracked once, compared ignoring host case, a trailing slash and a `#fragment`. The model enforces both, so the web form, the JSON API and MCP all refuse a repeat. The MCP tools check first, so the assistant gets a message naming the existing record (and saying if it is archived) rather than a bare validation error. Posting ids and URLs are the reliable keys, so the model enforces only those. The MCP tools add a softer check for a repeat with neither: the same company and role (ignoring case, punctuation, "Inc." and "Sr." against "Senior") is refused unless the call says `allow_duplicate`, because two openings can share a title. Another role at a company already tracked is added with a warning naming the others. `last_verified_on` records when a posting was last confirmed live; `stale_postings` lists the ones that need re-checking.
 
 **Application details.** Optional fields record where an application went (`application_channel`: email, company form, hiring platform, referral, other), which resume was sent and who the contact is. The MCP server tells the assistant to use them, and the pay fields, rather than the free-text notes.
 
@@ -109,12 +109,12 @@ Point the assistant at `http://<your-host>:3200/mcp` (transport "streamable HTTP
 | `get_opportunity` | One opportunity with its full activity history |
 | `follow_ups_due` | Open opportunities whose follow-up is today or overdue |
 | `pipeline_summary` | Counts per status, and how many follow-ups are due |
-| `create_opportunity` | Add an opportunity; a repeated posting ID or URL is reported as a duplicate, not added |
+| `create_opportunity` | Add an opportunity; a repeated posting ID or URL, or the same company and role, is reported as a duplicate (`allow_duplicate` overrides); another role at a known company is added with a warning |
 | `bulk_create_opportunities` | Add up to 25 at once (a daily search, say); each item is created, skipped as a duplicate, or reported as an error on its own |
 | `update_opportunity` | Change fields; a status change moves the card to the bottom of its column |
 | `stale_postings` | Postings not confirmed live within N days, so they can be re-checked |
 | `archive_opportunity` | Hide an entry made by mistake, or restore it. Nothing is deleted |
-| `log_activity` | Record an email, call, interview or note |
+| `log_activity` | Record an email, call, interview or note; optionally push the follow-up date out in the same call (`follow_up_in_days`) |
 
 **Design notes.** It is a small Rack app (`JobTrackMcp::Endpoint`) built on the official Ruby SDK and mounted in the Rails routes, so there is nothing extra to deploy. It is stateless, so each request stands alone and a restart strands no one. The tools call the same models as the web app, with the same validations, so the assistant cannot save anything the form would reject; bad input comes back as a readable tool error. Dates are checked rather than silently dropped. Read-only tools are annotated as such so a client can allow them without prompting. There is deliberately no delete tool: a mistaken entry is archived (hidden from the board, list, counts and reminders, and reversible), and a real job that ended is closed with a reason. The server tells the model to treat text in opportunities as data, not instructions, since job postings and emails are untrusted text that could try to steer an assistant. Anyone with a token can read and change your data, so keep it private and revoke it by deleting its row in the console (`ApiToken.find_by(name: "assistant").destroy`).
 

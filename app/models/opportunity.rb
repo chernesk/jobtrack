@@ -115,6 +115,12 @@ class Opportunity < ApplicationRecord
   # New cards land at the bottom of their status column.
   before_create :assign_position, if: -> { position.zero? }
 
+  # A status changed through a plain update (the edit form, the JSON API) joins the bottom of the
+  # new column and closes the gap it left, the same as dragging it there would. `move_to` places the
+  # card itself, so it sets a flag to keep these callbacks out of its way.
+  before_update :join_new_column, if: -> { status_changed? && !@placed_by_move }
+  after_update :close_gap_in_old_column, if: -> { saved_change_to_status? && !@placed_by_move }
+
   # The existing record that `external_id` or `url` points at, if any (archived ones included, so an
   # archived entry is not re-added by accident). A URL matches ignoring case in the host, a trailing
   # slash and any #fragment. Compared in Ruby: this is a personal tracker, so the table is small.
@@ -126,6 +132,38 @@ class Opportunity < ApplicationRecord
     return if target.blank?
 
     where.not(url: [ nil, "" ]).find { |opportunity| normalize_url(opportunity.url) == target }
+  end
+
+  # The same role at the same company, by name rather than by id or link: ignores case, punctuation,
+  # a trailing "Inc." or "LLC", and "Sr." against "Senior". Archived records count. This catches the
+  # repeat that has no posting id or URL to compare. It is only a hint (two openings can share a
+  # title), so callers let the person override it.
+  def self.find_same_role(company:, role:)
+    wanted_company = normalize_company(company)
+    wanted_role = normalize_role(role)
+    return if wanted_company.blank? || wanted_role.blank?
+
+    find { |o| normalize_company(o.company) == wanted_company && normalize_role(o.role) == wanted_role }
+  end
+
+  # Other records at the same company (any role), oldest first.
+  def self.at_company(company, excluding: nil)
+    wanted = normalize_company(company)
+    return [] if wanted.blank?
+
+    where.not(id: excluding).order(:id).select { |o| normalize_company(o.company) == wanted }
+  end
+
+  COMPANY_SUFFIXES = %w[inc incorporated llc ltd limited corp corporation co company gmbh].freeze
+
+  def self.normalize_company(value)
+    words = value.to_s.downcase.gsub(/[^\p{Alnum}]+/, " ").split
+    words.pop while words.size > 1 && COMPANY_SUFFIXES.include?(words.last)
+    words.join(" ")
+  end
+
+  def self.normalize_role(value)
+    value.to_s.downcase.gsub(/[^\p{Alnum}]+/, " ").split.map { |w| { "sr" => "senior", "jr" => "junior" }.fetch(w, w) }.join(" ")
   end
 
   def self.normalize_url(value)
@@ -175,6 +213,7 @@ class Opportunity < ApplicationRecord
 
       self.status = new_status
       self.position = column.index(self) + 1
+      @placed_by_move = true
       moved = save
       raise ActiveRecord::Rollback unless moved
 
@@ -182,6 +221,8 @@ class Opportunity < ApplicationRecord
       renumber(previous_status) unless previous_status == new_status
     end
     moved
+  ensure
+    @placed_by_move = false
   end
 
   def as_props
@@ -224,6 +265,14 @@ class Opportunity < ApplicationRecord
 
   def assign_position
     self.position = next_position
+  end
+
+  def join_new_column
+    self.position = next_position
+  end
+
+  def close_gap_in_old_column
+    renumber(status_before_last_save)
   end
 
   def next_position
