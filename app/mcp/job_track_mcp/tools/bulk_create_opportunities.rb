@@ -6,14 +6,18 @@ module JobTrackMcp
       tool_name "bulk_create_opportunities"
       description "Add several opportunities in one call (up to #{MAX}), for example the matches from a daily search. " \
                   "Each item takes the same fields as create_opportunity. Every item is handled on its own: " \
-                  "duplicates (same external_id or posting URL) are skipped and reported with the existing id, and a " \
+                  "duplicates (same external_id or posting URL, or the same company and role unless the item sets " \
+                  "allow_duplicate: true) are skipped and reported with the existing id, and a " \
                   "problem with one item does not stop the others. The result lists what happened to each, in order. " \
                   "A malformed item (for example an unknown status) rejects the whole call before anything is saved."
       input_schema(
         properties: {
           opportunities: {
             type: "array", minItems: 1, maxItems: MAX,
-            items: { type: "object", properties: OPPORTUNITY_PROPERTIES, required: %w[company role] }
+            items: {
+              type: "object", properties: OPPORTUNITY_PROPERTIES.merge(allow_duplicate: ALLOW_DUPLICATE),
+              required: %w[company role]
+            }
           }
         },
         required: [ "opportunities" ]
@@ -31,12 +35,19 @@ module JobTrackMcp
         )
       end
 
+      def self.created_result(index, opportunity)
+        result = { index: index, result: "created", id: opportunity.id, company: opportunity.company, role: opportunity.role }
+        warning = company_warning(opportunity)
+        warning ? result.merge(warning: warning) : result
+      end
+
       def self.result_for(index, item)
         outcome, value = Opportunity.transaction(requires_new: true) { create_or_report(item) }
 
         case outcome
-        when :created then { index: index, result: "created", id: value.id, company: value.company, role: value.role }
+        when :created then created_result(index, value)
         when :duplicate then { index: index, result: "duplicate", id: value.id, message: duplicate_summary(value) }
+        when :similar then { index: index, result: "duplicate", id: value.id, message: similar_summary(value) }
         when :invalid then { index: index, result: "error", message: "Not saved: #{value.errors.full_messages.to_sentence}." }
         else { index: index, result: "error", message: value }
         end
